@@ -1,13 +1,11 @@
-import { type User, type InsertUser } from "@shared/schema";
+import { type User, type UpsertUser } from "@shared/schema";
 import { randomUUID } from "crypto";
 
-// modify the interface with any CRUD methods
-// you might need
-
+// Interface for storage operations
 export interface IStorage {
+  // User operations - required for Replit Auth
   getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  upsertUser(user: UpsertUser): Promise<User>;
 }
 
 export class MemStorage implements IStorage {
@@ -21,15 +19,22 @@ export class MemStorage implements IStorage {
     return this.users.get(id);
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const id = userData.id || randomUUID();
+    const now = new Date();
+    
+    const existingUser = this.users.get(id);
+    const user: User = {
+      id,
+      email: userData.email || existingUser?.email || null,
+      firstName: userData.firstName || existingUser?.firstName || null,
+      lastName: userData.lastName || existingUser?.lastName || null,
+      profileImageUrl: userData.profileImageUrl || existingUser?.profileImageUrl || null,
+      isAdmin: userData.isAdmin ?? existingUser?.isAdmin ?? false,
+      createdAt: existingUser?.createdAt || now,
+      updatedAt: now,
+    };
+    
     this.users.set(id, user);
     return user;
   }
