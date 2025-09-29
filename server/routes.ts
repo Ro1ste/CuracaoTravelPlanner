@@ -1,28 +1,17 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware - from javascript_log_in_with_replit integration
-  await setupAuth(app);
-
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
+  // Temporary mock auth endpoint - replace with real auth later
+  app.get('/api/auth/user', async (req, res) => {
+    // Return null for now - frontend will show landing page
+    res.json(null);
   });
 
-  // Protected route example
-  app.get("/api/protected", isAuthenticated, async (req: any, res) => {
-    const userId = req.user?.claims?.sub;
-    res.json({ message: "This is a protected route", userId });
+  // Health check endpoint
+  app.get("/api/health", async (req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
   const httpServer = createServer(app);
