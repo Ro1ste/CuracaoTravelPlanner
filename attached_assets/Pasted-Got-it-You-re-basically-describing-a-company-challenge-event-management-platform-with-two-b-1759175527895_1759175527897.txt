@@ -1,0 +1,165 @@
+Got it 👍 You’re basically describing a **company challenge & event management platform** with two big modules:
+
+1. **Company Fitness/Challenge System**
+2. **Event Registration & Attendance System (with QR codes)**
+
+Let me write this all out as one **structured system explanation** so you (or your dev team) can use it as a blueprint.
+
+---
+
+# 📌 System Description
+
+## 🔑 Step 1: Login & Registration
+
+* Both **companies** and **admins** can log in.
+* Companies without an account can **create one** by filling in:
+
+  * Company name
+  * Contact person
+  * Email address
+  * Phone number
+  * Password & confirm password
+* Once a company account is created, the system automatically sends an **email confirmation**.
+* Admins can also create company accounts manually under **Company Management**.
+
+---
+
+## 🏢 Company Side (User Dashboard)
+
+### Dashboard Overview
+
+When a company logs in, they see their **dashboard** with:
+
+* **Total Points** (earned by completing tasks)
+* **Team Size** (editable in profile)
+* **Total Calories Burned** (from tasks)
+* **Today’s Goal** (daily target)
+* **Progress Stats** (calories, sweat liters, heartbeat, total points)
+* **Leaderboard** (Top 5 companies + option to see full ranking)
+* **Daily Task Section** → shows videos & descriptions uploaded by admin for today
+
+### Company Menu
+
+* **Company Profile**
+
+  * Upload/change logo
+  * Edit team size (# of members)
+  * Change branding color
+  * Contact person details (read-only, not editable)
+
+* **Tasks**
+
+  * Companies see **daily tasks** (videos + short description).
+  * Each task has **calories burned + points reward**.
+  * Companies can upload **proof content** (pictures or videos, max 30 MB each).
+  * Proof uploads go to **Admin Approval Queue**.
+
+* **Leaderboard**
+
+  * Shows the top 5 (on dashboard) and full ranking under the leaderboard page.
+
+---
+
+## 👨‍💻 Admin Side (Administration Dashboard)
+
+### Dashboard
+
+* Overview of all **registered companies**.
+* **Top 10 leaderboard** (company points).
+* **Company distribution stats** (analytics).
+* Quick overview of **submitted proofs** (pictures/videos).
+
+### Company Management
+
+* Create/edit companies.
+* View and reset company passwords.
+* Update team size, logo, colors.
+
+### Task Management
+
+* Upload **daily task videos** (max 30 MB each).
+* Write a **short description**.
+* Define **points** each task gives.
+* Adjust points after approval if needed.
+
+### Proof Approval
+
+* Module: **Pictures/Videos Approval**
+* Approve/reject uploaded proofs from companies.
+* Approved content contributes to points & progress.
+
+### Leaderboards & Analytics
+
+* Global leaderboard (all companies).
+* Advanced analytics:
+
+  * Participation rate
+  * Points earned per task
+  * Calories burned distribution
+  * Team performance
+
+### System Settings
+
+* Manage **admin users** (roles & permissions).
+* Customize **login page color & branding**.
+* Configure system-wide emails.
+
+---
+
+## 🎟 Event Registration Module (inside same system)
+
+### User Side (Event Sign-up Form)
+
+* People fill in:
+
+  * First Name
+  * Last Name
+  * Email Address
+  * Phone Number
+
+* After submit → They receive a **confirmation email** (waiting approval).
+
+### Admin Side (Event Management)
+
+* See all event sign-ups with their details.
+* Approve/reject registrations.
+* Once approved:
+
+  * System sends approval email
+  * Generates a **unique QR code ticket**
+
+### Event Check-in
+
+* At the event → staff scan QR codes with phone.
+* System marks attendee as **checked-in**.
+
+### Event Dashboard
+
+* Overview of:
+
+  * Total sign-ups
+  * Approved attendees
+  * Checked-in attendees
+* List of attendees with status:
+
+  * Registered (waiting approval)
+  * Approved (ticket sent)
+  * Checked-in (arrived)
+
+### Event Customization
+
+* Each event can have its own **colors/theme**.
+* Emails can be customized under a special **Email Templates Module**.
+
+---
+
+## ✅ In Short
+
+* **Companies** log in → do tasks → earn points → upload proofs → appear on leaderboard.
+* **Admins** manage companies, tasks, proofs, analytics, events, and emails.
+* **Events** are managed separately but inside the same system → registration, QR approval, and check-in.
+* **Dashboard** gives complete oversight of company progress + event attendance.
+
+---
+
+👉 Do you want me to also **design a diagram/mockup** that shows this whole flow visually (like a blueprint for developers/investors)?
