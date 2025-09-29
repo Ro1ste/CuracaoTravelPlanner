@@ -112,17 +112,21 @@ function AuthenticatedApp() {
   );
 }
 
-function App() {
+function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
 
+  if (isLoading || !isAuthenticated) {
+    return <Router />;
+  }
+
+  return <AuthenticatedApp />;
+}
+
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        {isLoading || !isAuthenticated ? (
-          <Router />
-        ) : (
-          <AuthenticatedApp />
-        )}
+        <AppContent />
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
