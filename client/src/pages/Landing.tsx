@@ -71,7 +71,7 @@ export function Landing() {
         
         <div className="relative container mx-auto px-6 py-24">
           <div className="max-w-4xl mx-auto text-center space-y-8">
-            <Badge variant="outline" className="text-sm bg-background/90 backdrop-blur">
+            <Badge variant="outline" className="text-lg px-6 py-2 bg-background/90 backdrop-blur">
               FDDK Wellness Initiative
             </Badge>
             
