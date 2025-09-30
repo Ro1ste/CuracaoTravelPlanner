@@ -6,7 +6,7 @@ import { Trophy, Medal, Award } from "lucide-react";
 interface LeaderboardEntry {
   id: string;
   name: string;
-  points: number;
+  points: number | null;
   logoUrl?: string;
   rank: number;
 }
