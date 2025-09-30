@@ -162,20 +162,31 @@ export const companyRegistrationSchema = insertCompanySchema.extend({
   path: ["confirmPassword"],
 });
 
+// Proof review schema
+export const proofReviewSchema = z.object({
+  status: z.enum(['approved', 'rejected']),
+  adminNotes: z.string().optional(),
+});
+
 // Type definitions
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 
+export type UpsertCompany = typeof companies.$inferInsert;
 export type InsertCompany = z.infer<typeof insertCompanySchema>;
 export type Company = typeof companies.$inferSelect;
 export type CompanyRegistration = z.infer<typeof companyRegistrationSchema>;
 
+export type UpsertTask = typeof tasks.$inferInsert;
 export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type Task = typeof tasks.$inferSelect;
 
+export type UpsertTaskProof = typeof taskProofs.$inferInsert;
 export type InsertTaskProof = z.infer<typeof insertTaskProofSchema>;
 export type TaskProof = typeof taskProofs.$inferSelect;
+
+export type ProofReview = z.infer<typeof proofReviewSchema>;
 
 export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type Event = typeof events.$inferSelect;
