@@ -8,9 +8,9 @@ import {
   type TaskProof,
   type UpsertTaskProof,
   type Event,
-  type UpsertEvent,
+  type InsertEvent,
   type EventRegistration,
-  type UpsertEventRegistration,
+  type InsertEventRegistration,
   users,
   companies,
   tasks,
@@ -55,13 +55,13 @@ export interface IStorage {
   getAllEvents(): Promise<Event[]>;
   getEventById(id: string): Promise<Event | undefined>;
   getActiveEvents(): Promise<Event[]>;
-  createEvent(event: UpsertEvent): Promise<Event>;
-  updateEvent(id: string, updates: Partial<UpsertEvent>): Promise<Event | undefined>;
+  createEvent(event: InsertEvent): Promise<Event>;
+  updateEvent(id: string, updates: Partial<InsertEvent>): Promise<Event | undefined>;
   
   // Event registration operations
   getEventRegistrations(eventId: string): Promise<EventRegistration[]>;
   getEventRegistrationById(id: string): Promise<EventRegistration | undefined>;
-  createEventRegistration(registration: UpsertEventRegistration): Promise<EventRegistration>;
+  createEventRegistration(registration: InsertEventRegistration): Promise<EventRegistration>;
   updateRegistrationStatus(id: string, status: 'approved' | 'rejected'): Promise<EventRegistration | undefined>;
   checkInRegistration(id: string): Promise<EventRegistration | undefined>;
 }
@@ -220,12 +220,12 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(events).where(eq(events.isActive, true)).orderBy(desc(events.eventDate));
   }
 
-  async createEvent(eventData: UpsertEvent): Promise<Event> {
+  async createEvent(eventData: InsertEvent): Promise<Event> {
     const [event] = await db.insert(events).values(eventData).returning();
     return event;
   }
 
-  async updateEvent(id: string, updates: Partial<UpsertEvent>): Promise<Event | undefined> {
+  async updateEvent(id: string, updates: Partial<InsertEvent>): Promise<Event | undefined> {
     const [event] = await db
       .update(events)
       .set(updates)
@@ -244,7 +244,7 @@ export class DatabaseStorage implements IStorage {
     return registration;
   }
 
-  async createEventRegistration(registrationData: UpsertEventRegistration): Promise<EventRegistration> {
+  async createEventRegistration(registrationData: InsertEventRegistration): Promise<EventRegistration> {
     const [registration] = await db.insert(eventRegistrations).values(registrationData).returning();
     return registration;
   }
@@ -477,7 +477,11 @@ export class MemStorage implements IStorage {
   // Event operations
   async getAllEvents(): Promise<Event[]> {
     return Array.from(this.events.values()).sort(
-      (a, b) => (b.eventDate?.getTime() ?? 0) - (a.eventDate?.getTime() ?? 0)
+      (a, b) => {
+        const aTime = a.eventDate ? new Date(a.eventDate).getTime() : 0;
+        const bTime = b.eventDate ? new Date(b.eventDate).getTime() : 0;
+        return bTime - aTime;
+      }
     );
   }
 
@@ -488,7 +492,11 @@ export class MemStorage implements IStorage {
   async getActiveEvents(): Promise<Event[]> {
     const activeEvents = Array.from(this.events.values())
       .filter(event => event.isActive)
-      .sort((a, b) => (b.eventDate?.getTime() ?? 0) - (a.eventDate?.getTime() ?? 0));
+      .sort((a, b) => {
+        const aTime = a.eventDate ? new Date(a.eventDate).getTime() : 0;
+        const bTime = b.eventDate ? new Date(b.eventDate).getTime() : 0;
+        return bTime - aTime;
+      });
     
     // Add registration counts to each event
     return activeEvents.map(event => {
@@ -502,7 +510,7 @@ export class MemStorage implements IStorage {
     });
   }
 
-  async createEvent(eventData: UpsertEvent): Promise<Event> {
+  async createEvent(eventData: InsertEvent): Promise<Event> {
     const id = `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const event: Event = {
       id,
@@ -517,7 +525,7 @@ export class MemStorage implements IStorage {
     return event;
   }
 
-  async updateEvent(id: string, updates: Partial<UpsertEvent>): Promise<Event | undefined> {
+  async updateEvent(id: string, updates: Partial<InsertEvent>): Promise<Event | undefined> {
     const event = this.events.get(id);
     if (!event) return undefined;
     
@@ -540,7 +548,7 @@ export class MemStorage implements IStorage {
     return this.eventRegistrations.get(id);
   }
 
-  async createEventRegistration(registrationData: UpsertEventRegistration): Promise<EventRegistration> {
+  async createEventRegistration(registrationData: InsertEventRegistration): Promise<EventRegistration> {
     const id = `reg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const registration: EventRegistration = {
       id,

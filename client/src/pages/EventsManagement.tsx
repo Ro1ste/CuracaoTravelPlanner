@@ -11,7 +11,10 @@ import { Calendar, Users, Link2, Plus, Copy, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Event } from "@shared/schema";
+import { insertEventSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 export function EventsManagement() {
@@ -24,7 +27,19 @@ export function EventsManagement() {
     queryKey: ['/api/events'],
   });
 
+  // Extend insertEventSchema with additional validation
+  const eventFormSchema = insertEventSchema.extend({
+    title: z.string().min(1, "Event title is required").min(5, "Title must be at least 5 characters"),
+    description: z.string().min(1, "Description is required").min(10, "Description must be at least 10 characters"),
+    eventDate: z.string().min(1, "Event date is required").refine(
+      (date) => new Date(date) > new Date(),
+      "Event date must be in the future"
+    ),
+    brandingColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format (use hex color like #ff6600)")
+  });
+
   const form = useForm({
+    resolver: zodResolver(eventFormSchema),
     defaultValues: {
       title: "",
       description: "",
