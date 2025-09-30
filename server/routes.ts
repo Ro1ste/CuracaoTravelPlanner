@@ -377,6 +377,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========== EVENT ROUTES ==========
+  // Get all active events
+  app.get('/api/events', async (req, res) => {
+    try {
+      const events = await storage.getActiveEvents();
+      res.json(events);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      res.status(500).json({ message: "Failed to fetch events" });
+    }
+  });
+
+  // Get specific event
+  app.get('/api/events/:id', async (req, res) => {
+    try {
+      const event = await storage.getEventById(req.params.id);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      res.json(event);
+    } catch (error) {
+      console.error("Error fetching event:", error);
+      res.status(500).json({ message: "Failed to fetch event" });
+    }
+  });
+
+  // Create event (admin only)
+  app.post('/api/events', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const event = await storage.createEvent(req.body);
+      res.status(201).json(event);
+    } catch (error) {
+      console.error("Error creating event:", error);
+      res.status(500).json({ message: "Failed to create event" });
+    }
+  });
+
+  // Register for event
+  app.post('/api/events/:id/register', async (req, res) => {
+    try {
+      const event = await storage.getEventById(req.params.id);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      const registration = await storage.createEventRegistration({
+        eventId: req.params.id,
+        ...req.body
+      });
+      res.status(201).json(registration);
+    } catch (error) {
+      console.error("Error registering for event:", error);
+      res.status(500).json({ message: "Failed to register for event" });
+    }
+  });
+
+  // Get event registrations (admin only)
+  app.get('/api/events/:id/registrations', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const registrations = await storage.getEventRegistrations(req.params.id);
+      res.json(registrations);
+    } catch (error) {
+      console.error("Error fetching registrations:", error);
+      res.status(500).json({ message: "Failed to fetch registrations" });
+    }
+  });
+
+  // Check in attendee (admin only)
+  app.post('/api/registrations/:id/checkin', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const registration = await storage.checkInRegistration(req.params.id);
+      if (!registration) {
+        return res.status(404).json({ message: "Registration not found" });
+      }
+      res.json(registration);
+    } catch (error) {
+      console.error("Error checking in attendee:", error);
+      res.status(500).json({ message: "Failed to check in attendee" });
+    }
+  });
+
   // Health check endpoint
   app.get("/api/health", async (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
