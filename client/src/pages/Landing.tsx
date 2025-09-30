@@ -50,7 +50,7 @@ export function Landing() {
               <img 
                 src={fddkLogo} 
                 alt="FDDK Logo" 
-                className="h-10 w-auto"
+                className="h-16 w-auto"
                 data-testid="logo-fddk"
               />
               <div className="border-l pl-3">
