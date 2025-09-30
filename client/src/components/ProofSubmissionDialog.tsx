@@ -4,6 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { ObjectUploader } from "@/components/ObjectUploader";
+import type { UploadResult } from "@uppy/core";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,7 +24,6 @@ import {
   FormMessage,
   FormDescription,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -31,9 +32,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { Upload, CheckCircle } from "lucide-react";
 
 const proofSubmissionSchema = z.object({
-  contentUrl: z.string().url("Please enter a valid URL"),
   contentType: z.enum(["image", "video"]),
 });
 
@@ -55,30 +56,73 @@ export function ProofSubmissionDialog({
   onOpenChange,
 }: ProofSubmissionDialogProps) {
   const { toast } = useToast();
+  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [proofId, setProofId] = useState<string | null>(null);
 
   const form = useForm<ProofSubmissionFormData>({
     resolver: zodResolver(proofSubmissionSchema),
     defaultValues: {
-      contentUrl: "",
       contentType: "image",
     },
   });
 
+  const handleGetUploadParameters = async () => {
+    const response = await apiRequest<{ uploadURL: string }>(
+      "POST",
+      "/api/objects/upload",
+      {}
+    );
+    return {
+      method: "PUT" as const,
+      url: response.uploadURL,
+    };
+  };
+
+  const handleUploadComplete = async (
+    result: UploadResult<Record<string, unknown>, Record<string, unknown>>
+  ) => {
+    if (result.successful.length > 0) {
+      const uploadURL = result.successful[0].uploadURL;
+      setUploadedUrl(uploadURL || null);
+      toast({
+        title: "File uploaded!",
+        description: "Your file has been uploaded successfully.",
+      });
+    }
+  };
+
   const submitProofMutation = useMutation({
     mutationFn: async (data: ProofSubmissionFormData) => {
-      return await apiRequest("POST", "/api/proofs", {
+      if (!uploadedUrl) {
+        throw new Error("Please upload a file first");
+      }
+
+      // First, create the proof with a placeholder URL
+      const proof = await apiRequest<{ id: string }>("POST", "/api/proofs", {
         taskId,
         companyId,
-        ...data,
+        contentUrl: uploadedUrl,
+        contentType: data.contentType,
       });
+
+      // Then update the proof with the normalized object path and set ACL
+      await apiRequest("PUT", `/api/proofs/${proof.id}/content`, {
+        contentURL: uploadedUrl,
+      });
+
+      return proof;
     },
     onSuccess: () => {
       toast({
         title: "Success!",
         description: "Your proof has been submitted for review.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "proofs"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/companies", companyId, "proofs"],
+      });
       form.reset();
+      setUploadedUrl(null);
+      setProofId(null);
       onOpenChange(false);
     },
     onError: (error: any) => {
@@ -91,12 +135,23 @@ export function ProofSubmissionDialog({
   });
 
   const onSubmit = (data: ProofSubmissionFormData) => {
+    if (!uploadedUrl) {
+      toast({
+        title: "Error",
+        description: "Please upload a file first",
+        variant: "destructive",
+      });
+      return;
+    }
     submitProofMutation.mutate(data);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]" data-testid="dialog-proof-submission">
+      <DialogContent
+        className="sm:max-w-[425px]"
+        data-testid="dialog-proof-submission"
+      >
         <DialogHeader>
           <DialogTitle data-testid="dialog-title">Submit Proof</DialogTitle>
           <DialogDescription>
@@ -131,39 +186,51 @@ export function ProofSubmissionDialog({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="contentUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Content URL</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="https://example.com/image.jpg"
-                      {...field}
-                      data-testid="input-content-url"
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Enter the URL of your proof image or video
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="space-y-2">
+              <FormLabel>Upload File</FormLabel>
+              <ObjectUploader
+                maxNumberOfFiles={1}
+                maxFileSize={10485760}
+                onGetUploadParameters={handleGetUploadParameters}
+                onComplete={handleUploadComplete}
+                buttonVariant="outline"
+                buttonClassName="w-full"
+              >
+                <div className="flex items-center gap-2">
+                  {uploadedUrl ? (
+                    <>
+                      <CheckCircle className="h-4 w-4" />
+                      <span>File Uploaded - Click to Replace</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4" />
+                      <span>Upload {form.watch("contentType")}</span>
+                    </>
+                  )}
+                </div>
+              </ObjectUploader>
+              <FormDescription>
+                Upload an image (JPG, PNG) or video (MP4, MOV). Max size: 10MB
+              </FormDescription>
+            </div>
 
             <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => {
+                  setUploadedUrl(null);
+                  setProofId(null);
+                  onOpenChange(false);
+                }}
                 data-testid="button-cancel"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                disabled={submitProofMutation.isPending}
+                disabled={submitProofMutation.isPending || !uploadedUrl}
                 data-testid="button-submit-proof"
               >
                 {submitProofMutation.isPending ? "Submitting..." : "Submit Proof"}

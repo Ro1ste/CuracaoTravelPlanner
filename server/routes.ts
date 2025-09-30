@@ -8,6 +8,8 @@ import {
   insertTaskProofSchema,
   proofReviewSchema
 } from "@shared/schema";
+import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { ObjectPermission } from "./objectAcl";
 
 // Middleware to check if user is admin
 const isAdmin = async (req: any, res: any, next: any) => {
@@ -292,6 +294,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching leaderboard:", error);
       res.status(500).json({ message: "Failed to fetch leaderboard" });
+    }
+  });
+
+  // ========== OBJECT STORAGE ROUTES ==========
+  // Referenced from blueprint:javascript_object_storage
+  // Get upload URL for proof content
+  app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error("Error generating upload URL:", error);
+      res.status(500).json({ error: "Failed to generate upload URL" });
+    }
+  });
+
+  // Serve private objects with ACL checks
+  app.get("/objects/:objectPath(*)", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const objectStorageService = new ObjectStorageService();
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      
+      const canAccess = await objectStorageService.canAccessObjectEntity({
+        objectFile,
+        userId: userId,
+        requestedPermission: ObjectPermission.READ,
+      });
+      
+      if (!canAccess) {
+        return res.sendStatus(403);
+      }
+      
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error accessing object:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.sendStatus(404);
+      }
+      return res.sendStatus(500);
+    }
+  });
+
+  // Update proof content URL after upload and set ACL
+  app.put("/api/proofs/:id/content", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!req.body.contentURL) {
+        return res.status(400).json({ error: "contentURL is required" });
+      }
+
+      const proof = await storage.getProofById(req.params.id);
+      if (!proof) {
+        return res.status(404).json({ error: "Proof not found" });
+      }
+
+      // Verify ownership - user must own the company that submitted the proof
+      const company = await storage.getCompany(proof.companyId);
+      if (!company || company.userId !== userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
+        req.body.contentURL,
+        {
+          owner: userId,
+          visibility: "private",
+        }
+      );
+
+      // Update proof with the object path
+      await storage.updateProofContent(req.params.id, objectPath);
+
+      res.status(200).json({ objectPath });
+    } catch (error) {
+      console.error("Error setting proof content:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 

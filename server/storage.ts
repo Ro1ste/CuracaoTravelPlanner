@@ -43,6 +43,7 @@ export interface IStorage {
   getAllProofs(): Promise<TaskProof[]>;
   createProof(proof: UpsertTaskProof): Promise<TaskProof>;
   updateProofStatus(id: string, status: 'approved' | 'rejected', adminNotes?: string): Promise<TaskProof | undefined>;
+  updateProofContent(id: string, contentUrl: string): Promise<TaskProof | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -171,6 +172,15 @@ export class DatabaseStorage implements IStorage {
         adminNotes,
         reviewedAt: new Date()
       })
+      .where(eq(taskProofs.id, id))
+      .returning();
+    return proof;
+  }
+
+  async updateProofContent(id: string, contentUrl: string): Promise<TaskProof | undefined> {
+    const [proof] = await db
+      .update(taskProofs)
+      .set({ contentUrl })
       .where(eq(taskProofs.id, id))
       .returning();
     return proof;
