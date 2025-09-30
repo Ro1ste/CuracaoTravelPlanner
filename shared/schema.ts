@@ -86,6 +86,8 @@ export const events = pgTable("events", {
   eventDate: timestamp("event_date").notNull(),
   brandingColor: varchar("branding_color").default("#211100"),
   isActive: boolean("is_active").default(true),
+  emailSubject: varchar("email_subject"),
+  emailBodyText: text("email_body_text"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -97,8 +99,11 @@ export const eventRegistrations = pgTable("event_registrations", {
   lastName: varchar("last_name").notNull(),
   email: varchar("email").notNull(),
   phone: varchar("phone").notNull(),
+  companyName: varchar("company_name"),
   status: varchar("status").default("pending"), // 'pending', 'approved', 'rejected'
   qrCode: varchar("qr_code"),
+  qrCodePayload: text("qr_code_payload"),
+  qrCodeIssuedAt: timestamp("qr_code_issued_at"),
   checkedIn: boolean("checked_in").default(false),
   checkedInAt: timestamp("checked_in_at"),
   registeredAt: timestamp("registered_at").defaultNow(),
@@ -151,6 +156,7 @@ export const insertEventRegistrationSchema = createInsertSchema(eventRegistratio
   lastName: true,
   email: true,
   phone: true,
+  companyName: true,
 });
 
 // Extended schemas for validation
