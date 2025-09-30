@@ -182,6 +182,60 @@ export async function setupAuth(app: Express) {
       });
     });
 
+    // Demo login - accepts any username/password
+    app.post("/api/demo/login", async (req, res) => {
+      const { username, password, role } = req.body;
+      
+      if (!username || !password || !role) {
+        return res.status(400).json({ message: "Username, password, and role required" });
+      }
+
+      const isAdmin = role === 'admin';
+      // Create a unique user ID based on username
+      const userId = `demo-${username}-${isAdmin ? 'admin' : 'company'}`;
+      const email = `${username}@demo.local`;
+      
+      // Upsert demo user
+      await storage.upsertUser({
+        id: userId,
+        email: email,
+        firstName: username,
+        lastName: isAdmin ? 'Admin' : 'User',
+        profileImageUrl: null,
+        isAdmin: isAdmin,
+      });
+
+      // Create company for company user if doesn't exist
+      if (!isAdmin) {
+        const existingCompany = await storage.getCompanyByUserId(userId);
+        if (!existingCompany) {
+          await storage.createCompany({
+            name: `${username}'s Company`,
+            contactPersonName: username,
+            email: email,
+            phone: "+1234567890",
+            teamSize: 10,
+            logoUrl: null,
+            brandingColor: "#ff6600",
+            userId: userId,
+          });
+        }
+      }
+
+      // Set session
+      const demoUser = {
+        claims: { sub: userId },
+        expires_at: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60), // 1 week
+      };
+      
+      req.login(demoUser, (err) => {
+        if (err) {
+          return res.status(500).json({ message: "Login failed" });
+        }
+        res.json({ success: true });
+      });
+    });
+
     app.get("/api/logout", (req, res) => {
       req.logout(() => {
         res.redirect('/');
