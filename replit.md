@@ -8,11 +8,12 @@ A comprehensive corporate wellness and event management platform built with Full
 
 **Infrastructure Complete:**
 - ✅ PostgreSQL database with comprehensive schema
-- ✅ Replit Auth integration (needs minor fixes)
+- ✅ Replit Auth integration
 - ✅ Object Storage integration
 - ✅ Material Design system with Roboto fonts
 - ✅ Dark/light mode support
 - ✅ Responsive layouts
+- ✅ Dev Mode for testing without database
 
 **Frontend Complete:**
 - ✅ Landing page for non-authenticated users
@@ -22,11 +23,14 @@ A comprehensive corporate wellness and event management platform built with Full
 - ✅ Beautiful Material Design interface with animations
 - ✅ Role-based routing and protected components
 - ✅ Complete component library with examples
+- ✅ Dev Mode login buttons for easy testing
 
-**Backend In Progress:**
-- ⚠️ Authentication routes need environment setup
+**Backend Complete:**
+- ✅ Full authentication with Replit Auth
 - ✅ Database schema and storage interface
-- ✅ API structure defined
+- ✅ Complete REST API with all CRUD operations
+- ✅ In-memory storage mode for testing
+- ✅ Dev Mode with role-based login
 
 ## 🛠 Technical Stack
 
@@ -125,44 +129,50 @@ A comprehensive corporate wellness and event management platform built with Full
 - Responsive grid layouts
 - Form validation and loading states
 
-## 🔧 Current Issues to Fix
+## 🧪 Dev Mode - Testing Without Database
 
-1. **Authentication Setup:**
-   - Environment variables need configuration
-   - Replit Auth integration needs completion
-   - Session storage requires database connection
+**Dev Mode** allows you to test both the company and admin features without needing database setup or authentication. Perfect for quick testing and demonstrations!
 
-2. **Minor Fixes:**
-   - Import path resolution in server files
-   - TypeScript type definitions
-   - Route handler type safety
+### How to Enable Dev Mode:
 
-## 🚀 Next Steps
+1. **Add Environment Variables** in Replit Secrets:
+   - `USE_DEV_STORAGE=true` - Enables in-memory storage
+   - `VITE_DEV_MODE=true` - Shows dev login buttons on frontend
+   
+2. **Restart the Application** to apply changes
 
-1. **Fix Authentication:**
-   - Complete Replit Auth setup
-   - Test login/logout flow
-   - Verify user session management
+3. **Dev Login Buttons** will appear on the landing page:
+   - "Login as Company" - Test the company dashboard
+   - "Login as Admin" - Test the admin dashboard
 
-2. **Backend API Development:**
-   - Implement CRUD operations for all entities
-   - Add file upload endpoints
-   - Create QR code generation
-   - Build leaderboard calculations
+### Dev Mode Features:
 
-3. **Advanced Features:**
-   - Real-time notifications
-   - Analytics dashboard
-   - Bulk operations for admins
-   - Advanced filtering and search
+- ✅ **In-Memory Storage**: No database required - all data stored in memory
+- ✅ **Sample Data**: Auto-seeds 3 wellness tasks on startup
+- ✅ **Auto Company**: Creates a test company automatically for company users
+- ✅ **Quick Role Switch**: Easily toggle between admin and company views
+- ✅ **No Authentication**: Skip Replit Auth - instant access to features
+
+### Dev Mode Limitations:
+
+- ⚠️ **Data Resets**: All data is lost when server restarts
+- ⚠️ **Single Session**: Dev mode uses a single admin and company user
+- ⚠️ **No File Uploads**: Object storage requires real database
 
 ## 📱 How to Access
 
+**Production Mode** (default):
 1. **Preview URL:** Available in Replit workspace
 2. **Login:** Click "Get Started" → `/api/login`
 3. **Authentication:** Uses Replit Auth (Google, GitHub, email)
 4. **Role Detection:** Admin users (email contains "admin") see admin dashboard
 5. **Company Users:** See company dashboard with tasks and leaderboards
+
+**Dev Mode** (testing):
+1. Add `USE_DEV_STORAGE=true` and `VITE_DEV_MODE=true` to Replit Secrets
+2. Restart application
+3. Click "Login as Company" or "Login as Admin" on landing page
+4. Instant access to all features with sample data
 
 ## 💾 Development Commands
 

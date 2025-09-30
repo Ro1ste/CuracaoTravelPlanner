@@ -388,5 +388,4 @@ export class MemStorage implements IStorage {
 
 // Use in-memory storage in dev mode, otherwise use database
 const DEV_MODE = process.env.NODE_ENV === 'development' && process.env.USE_DEV_STORAGE === 'true';
-console.log(`🔧 Storage mode: ${DEV_MODE ? 'MemStorage (Dev)' : 'DatabaseStorage (Production)'}`);
 export const storage: IStorage = DEV_MODE ? new MemStorage() : new DatabaseStorage();
