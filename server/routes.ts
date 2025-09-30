@@ -6,10 +6,13 @@ import {
   insertCompanySchema, 
   insertTaskSchema, 
   insertTaskProofSchema,
-  proofReviewSchema
+  proofReviewSchema,
+  insertEventRegistrationSchema
 } from "@shared/schema";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
+import { QRCodeService } from "./qrService";
+import { EmailService } from "./emailService";
 
 // Middleware to check if user is admin
 const isAdmin = async (req: any, res: any, next: any) => {
@@ -441,6 +444,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching registrations:", error);
       res.status(500).json({ message: "Failed to fetch registrations" });
+    }
+  });
+
+  // Approve/Reject registration and send QR code (admin only)
+  app.patch('/api/events/:eventId/registrations/:id', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { status } = req.body;
+      
+      if (!status || !['approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+
+      const registration = await storage.getEventRegistrationById(req.params.id);
+      if (!registration) {
+        return res.status(404).json({ message: "Registration not found" });
+      }
+
+      const event = await storage.getEventById(req.params.eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      if (status === 'approved') {
+        const token = QRCodeService.generateToken(registration.id, event.id);
+        const qrPayload = {
+          attendeeId: registration.id,
+          eventId: event.id,
+          token: token,
+          issuedAt: Date.now(),
+        };
+        const qrCodeDataUrl = await QRCodeService.generateQRCode(qrPayload);
+
+        const updatedRegistration = await storage.updateRegistrationStatus(req.params.id, 'approved');
+        
+        const emailTemplate = event.emailSubject && event.emailBodyText
+          ? { subject: event.emailSubject, text: event.emailBodyText }
+          : EmailService.getDefaultTemplate(event.title, `${registration.firstName} ${registration.lastName}`);
+
+        await EmailService.sendEmail({
+          to: registration.email,
+          subject: emailTemplate.subject,
+          text: emailTemplate.text,
+          qrCodeDataUrl: qrCodeDataUrl,
+        });
+
+        res.json({ ...updatedRegistration, emailSent: true });
+      } else {
+        const updatedRegistration = await storage.updateRegistrationStatus(req.params.id, 'rejected');
+        res.json(updatedRegistration);
+      }
+    } catch (error) {
+      console.error("Error updating registration:", error);
+      res.status(500).json({ message: "Failed to update registration" });
+    }
+  });
+
+  // Resend QR code email (admin only)
+  app.post('/api/events/:eventId/registrations/:id/resend', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const registration = await storage.getEventRegistrationById(req.params.id);
+      if (!registration) {
+        return res.status(404).json({ message: "Registration not found" });
+      }
+
+      if (registration.status !== 'approved') {
+        return res.status(400).json({ message: "Registration must be approved first" });
+      }
+
+      const event = await storage.getEventById(req.params.eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      const token = QRCodeService.generateToken(registration.id, event.id);
+      const qrPayload = {
+        attendeeId: registration.id,
+        eventId: event.id,
+        token: token,
+        issuedAt: Date.now(),
+      };
+      const qrCodeDataUrl = await QRCodeService.generateQRCode(qrPayload);
+
+      const emailTemplate = event.emailSubject && event.emailBodyText
+        ? { subject: event.emailSubject, text: event.emailBodyText }
+        : EmailService.getDefaultTemplate(event.title, `${registration.firstName} ${registration.lastName}`);
+
+      await EmailService.sendEmail({
+        to: registration.email,
+        subject: emailTemplate.subject,
+        text: emailTemplate.text,
+        qrCodeDataUrl: qrCodeDataUrl,
+      });
+
+      res.json({ message: "Email resent successfully" });
+    } catch (error) {
+      console.error("Error resending email:", error);
+      res.status(500).json({ message: "Failed to resend email" });
     }
   });
 
