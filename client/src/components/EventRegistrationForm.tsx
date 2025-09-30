@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,21 @@ export function EventRegistrationForm({
     email: "",
     phone: ""
   });
+  const wasSubmitting = useRef(false);
+
+  // Reset form after successful submission
+  useEffect(() => {
+    if (wasSubmitting.current && !isSubmitting) {
+      // Submission completed, reset form
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: ""
+      });
+    }
+    wasSubmitting.current = isSubmitting;
+  }, [isSubmitting]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

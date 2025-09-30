@@ -22,16 +22,10 @@ export function EventRegistration() {
   // Use first active event as default
   const event = events[0];
 
-  // Fetch registrations for the event
-  const { data: registrations = [] } = useQuery<EventRegistrationType[]>({
-    queryKey: ['/api/events', event?.id, 'registrations'],
-    enabled: !!event?.id,
-  });
-
-  // Calculate stats
-  const totalRegistrations = registrations.length;
-  const approvedAttendees = registrations.filter(r => r.status === 'approved').length;
-  const checkedInAttendees = registrations.filter(r => r.checkedIn).length;
+  // Get stats from event object (includes registration counts)
+  const totalRegistrations = (event as any)?.totalRegistrations ?? 0;
+  const approvedAttendees = (event as any)?.approvedRegistrations ?? 0;
+  const checkedInAttendees = (event as any)?.checkedInRegistrations ?? 0;
 
   const registerMutation = useMutation({
     mutationFn: async (data: {
@@ -50,7 +44,8 @@ export function EventRegistration() {
         title: "Registration Submitted!",
         description: "Thank you for registering! You'll receive a confirmation email shortly.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/events', event?.id, 'registrations'] });
+      // Invalidate events query to refresh stats
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
     },
     onError: (error: any) => {
       toast({

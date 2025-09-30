@@ -12,6 +12,7 @@ import { LogOut } from "lucide-react";
 import { Landing } from "@/pages/Landing";
 import { CompanyDashboard } from "@/pages/CompanyDashboard";
 import { AdminDashboard } from "@/pages/AdminDashboard";
+import { EventRegistration } from "@/pages/EventRegistration";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -29,6 +30,7 @@ function Router() {
     return (
       <Switch>
         <Route path="/" component={Landing} />
+        <Route path="/event-registration" component={EventRegistration} />
         <Route component={Landing} />
       </Switch>
     );

@@ -486,9 +486,20 @@ export class MemStorage implements IStorage {
   }
 
   async getActiveEvents(): Promise<Event[]> {
-    return Array.from(this.events.values())
+    const activeEvents = Array.from(this.events.values())
       .filter(event => event.isActive)
       .sort((a, b) => (b.eventDate?.getTime() ?? 0) - (a.eventDate?.getTime() ?? 0));
+    
+    // Add registration counts to each event
+    return activeEvents.map(event => {
+      const registrations = Array.from(this.eventRegistrations.values()).filter(r => r.eventId === event.id);
+      return {
+        ...event,
+        totalRegistrations: registrations.length,
+        approvedRegistrations: registrations.filter(r => r.status === 'approved').length,
+        checkedInRegistrations: registrations.filter(r => r.checkedIn).length,
+      } as any; // TypeScript workaround for adding dynamic fields
+    });
   }
 
   async createEvent(eventData: UpsertEvent): Promise<Event> {
