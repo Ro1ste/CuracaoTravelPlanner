@@ -79,7 +79,7 @@ export function LeaderboardCard({
               </div>
             </div>
             <Badge variant="outline" data-testid={`company-points-${entry.id}`}>
-              {entry.points.toLocaleString()} pts
+              {(entry.points ?? 0).toLocaleString()} pts
             </Badge>
           </div>
         ))}
