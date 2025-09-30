@@ -13,6 +13,7 @@ interface EventRegistrationFormProps {
     lastName: string;
     email: string;
     phone: string;
+    companyName?: string;
   }) => void;
   isSubmitting?: boolean;
 }
@@ -28,7 +29,8 @@ export function EventRegistrationForm({
     firstName: "",
     lastName: "",
     email: "",
-    phone: ""
+    phone: "",
+    companyName: ""
   });
   const wasSubmitting = useRef(false);
 
@@ -40,7 +42,8 @@ export function EventRegistrationForm({
         firstName: "",
         lastName: "",
         email: "",
-        phone: ""
+        phone: "",
+        companyName: ""
       });
     }
     wasSubmitting.current = isSubmitting;
@@ -132,6 +135,17 @@ export function EventRegistrationForm({
               placeholder="+1 (555) 123-4567"
               required
               data-testid="input-phone"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="companyName">Company Name (Optional)</Label>
+            <Input
+              id="companyName"
+              value={formData.companyName}
+              onChange={handleInputChange("companyName")}
+              placeholder="Your Company"
+              data-testid="input-company-name"
             />
           </div>
           
