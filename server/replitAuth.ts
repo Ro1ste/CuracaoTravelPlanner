@@ -81,6 +81,40 @@ async function upsertUser(
   });
 }
 
+async function seedDevData() {
+  // Seed some sample tasks for testing
+  const tasks = await storage.getAllTasks();
+  if (tasks.length === 0) {
+    await storage.createTask({
+      title: "Morning Walk",
+      description: "Take a 30-minute walk to start your day",
+      pointsReward: 50,
+      caloriesBurned: 100,
+      videoUrl: null,
+      date: new Date(),
+    });
+    
+    await storage.createTask({
+      title: "Desk Stretches",
+      description: "5-minute stretching routine at your desk",
+      pointsReward: 25,
+      caloriesBurned: 30,
+      videoUrl: null,
+      date: new Date(),
+    });
+
+    await storage.createTask({
+      title: "Team Fitness Challenge",
+      description: "Participate in team fitness activities",
+      pointsReward: 100,
+      caloriesBurned: 200,
+      videoUrl: null,
+      date: new Date(),
+    });
+    console.log("✅ Dev seed data: Created sample tasks");
+  }
+}
+
 export async function setupAuth(app: Express) {
   app.set("trust proxy", 1);
   app.use(getSession());
@@ -88,6 +122,9 @@ export async function setupAuth(app: Express) {
   app.use(passport.session());
 
   if (DEV_MODE) {
+    // Seed initial dev data
+    await seedDevData();
+    
     // Dev mode - simple role-based login
     passport.serializeUser((user: Express.User, cb) => cb(null, user));
     passport.deserializeUser((user: Express.User, cb) => cb(null, user));
@@ -107,6 +144,23 @@ export async function setupAuth(app: Express) {
         profileImageUrl: null,
         isAdmin: isAdmin,
       });
+
+      // Create company for company user if doesn't exist
+      if (!isAdmin) {
+        const existingCompany = await storage.getCompanyByUserId(userId);
+        if (!existingCompany) {
+          await storage.createCompany({
+            name: "Dev Test Company",
+            contactPersonName: "Company User",
+            email: "company@dev.local",
+            phone: "+1234567890",
+            teamSize: 10,
+            logoUrl: null,
+            brandingColor: "#ff6600",
+            userId: userId,
+          });
+        }
+      }
 
       // Set session
       const devUser = {
