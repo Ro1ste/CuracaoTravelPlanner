@@ -386,6 +386,10 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Use in-memory storage in dev mode, otherwise use database
-const DEV_MODE = process.env.NODE_ENV === 'development' && process.env.USE_DEV_STORAGE === 'true';
+// Use in-memory storage in dev mode by default (aligns with fullstack_js guidelines)
+// In development: defaults to MemStorage unless USE_DEV_STORAGE=false
+// In production: always uses DatabaseStorage
+const DEV_MODE = process.env.NODE_ENV === 'development' && process.env.USE_DEV_STORAGE !== 'false';
+const storageMode = DEV_MODE ? 'MemStorage (Dev)' : 'DatabaseStorage (Production)';
+console.log(`🔧 Storage mode: ${storageMode}`);
 export const storage: IStorage = DEV_MODE ? new MemStorage() : new DatabaseStorage();

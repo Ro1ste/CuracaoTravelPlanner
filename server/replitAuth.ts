@@ -9,7 +9,8 @@ import connectPg from "connect-pg-simple";
 import MemoryStore from "memorystore";
 import { storage } from "./storage";
 
-const DEV_MODE = process.env.NODE_ENV === 'development' && process.env.USE_DEV_STORAGE === 'true';
+// Use dev mode by default in development unless explicitly disabled
+const DEV_MODE = process.env.NODE_ENV === 'development' && process.env.USE_DEV_STORAGE !== 'false';
 
 if (!DEV_MODE && !process.env.REPLIT_DOMAINS) {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
