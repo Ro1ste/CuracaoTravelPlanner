@@ -131,19 +131,24 @@ A comprehensive corporate wellness and event management platform built with Full
 
 ## 🧪 Dev Mode - Testing Without Database
 
-**Dev Mode** allows you to test both the company and admin features without needing database setup or authentication. Perfect for quick testing and demonstrations!
+**Dev Mode is enabled by default in development!** This allows you to test both the company and admin features without needing database setup or authentication. Perfect for quick testing and demonstrations!
 
-### How to Enable Dev Mode:
+### How Dev Mode Works:
 
-1. **Add Environment Variables** in Replit Secrets:
-   - `USE_DEV_STORAGE=true` - Enables in-memory storage
-   - `VITE_DEV_MODE=true` - Shows dev login buttons on frontend
-   
-2. **Restart the Application** to apply changes
+**Default Behavior:**
+- In development (`NODE_ENV=development`), the app automatically uses MemStorage
+- Dev login buttons appear on the landing page automatically
+- Sample tasks are created on server startup
+- No database or Replit Auth configuration needed
 
-3. **Dev Login Buttons** will appear on the landing page:
-   - "Login as Company" - Test the company dashboard
-   - "Login as Admin" - Test the admin dashboard
+**To Disable Dev Mode (use real database in development):**
+1. **Add to Replit Secrets:** `USE_DEV_STORAGE=false`
+2. **Add to Replit Secrets:** `VITE_DEV_MODE=false` (optional, hides dev login buttons)
+3. **Restart the Application**
+
+**Dev Login:**
+- "Login as Company" - Test the company dashboard with sample data
+- "Login as Admin" - Test the admin dashboard with oversight features
 
 ### Dev Mode Features:
 
@@ -161,18 +166,25 @@ A comprehensive corporate wellness and event management platform built with Full
 
 ## 📱 How to Access
 
-**Production Mode** (default):
+**Dev Mode** (default in development):
+1. **Preview URL:** Available in Replit workspace
+2. **Dev Login Buttons:** Automatically appear on landing page
+3. Click "Login as Company" or "Login as Admin" to test features
+4. **Sample Data:** 3 wellness tasks auto-created for testing
+5. **Instant Access:** No authentication or database setup required
+
+**Production Mode** (deployed app):
 1. **Preview URL:** Available in Replit workspace
 2. **Login:** Click "Get Started" → `/api/login`
 3. **Authentication:** Uses Replit Auth (Google, GitHub, email)
 4. **Role Detection:** Admin users (email contains "admin") see admin dashboard
 5. **Company Users:** See company dashboard with tasks and leaderboards
 
-**Dev Mode** (testing):
-1. Add `USE_DEV_STORAGE=true` and `VITE_DEV_MODE=true` to Replit Secrets
-2. Restart application
-3. Click "Login as Company" or "Login as Admin" on landing page
-4. Instant access to all features with sample data
+**To Use Production Mode in Development:**
+1. Set `USE_DEV_STORAGE=false` in Replit Secrets
+2. Set `VITE_DEV_MODE=false` in Replit Secrets
+3. Restart the application
+4. Configure Replit Auth environment variables
 
 ## 💾 Development Commands
 
