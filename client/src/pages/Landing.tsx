@@ -22,11 +22,6 @@ export function Landing() {
       description: "Compete with other companies and track your progress"
     },
     {
-      icon: Calendar,
-      title: "Event Management",
-      description: "Register for wellness events with QR code check-ins"
-    },
-    {
       icon: BarChart3,
       title: "Analytics Dashboard",
       description: "Track calories burned, participation rates, and more"
@@ -50,7 +45,7 @@ export function Landing() {
               <img 
                 src={fddkLogo} 
                 alt="FDDK Logo" 
-                className="h-16 w-auto"
+                className="h-24 w-auto"
                 data-testid="logo-fddk"
               />
               <div className="border-l pl-3">
