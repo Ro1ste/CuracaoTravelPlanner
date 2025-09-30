@@ -25,7 +25,7 @@ export function DemoLoginForm() {
       <Alert className="border-orange-500 bg-orange-50 dark:bg-orange-950">
         <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
         <AlertDescription className="text-orange-800 dark:text-orange-200">
-          <strong>DEV MODE</strong> - Quick login for testing (not secure)
+          {/* <strong>DEV MODE</strong> - Quick login for testing (not secure) */}
         </AlertDescription>
       </Alert>
 
