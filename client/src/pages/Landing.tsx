@@ -10,6 +10,13 @@ export function Landing() {
     window.location.href = "/api/login";
   };
 
+  const handleLearnMore = () => {
+    document.getElementById('features-section')?.scrollIntoView({ 
+      behavior: 'smooth',
+      block: 'start'
+    });
+  };
+
   const features = [
     {
       icon: Award,
@@ -95,6 +102,7 @@ export function Landing() {
               <Button 
                 size="lg" 
                 variant="outline"
+                onClick={handleLearnMore}
                 className="text-lg px-8 py-6 bg-background/90 backdrop-blur"
                 data-testid="button-learn-more"
               >
@@ -106,7 +114,7 @@ export function Landing() {
       </div>
 
       {/* Features Section */}
-      <div className="container mx-auto px-6 py-24">
+      <div id="features-section" className="container mx-auto px-6 py-24">
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold mb-4" data-testid="features-title">
             Everything You Need for Corporate Wellness
