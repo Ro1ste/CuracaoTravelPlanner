@@ -29,6 +29,11 @@ const getOidcConfig = memoize(
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   
+  // Require SESSION_SECRET in production
+  if (!DEV_MODE && !process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET environment variable is required in production");
+  }
+  
   let sessionStore;
   if (DEV_MODE) {
     const MemStore = MemoryStore(session);
