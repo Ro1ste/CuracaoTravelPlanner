@@ -1,19 +1,17 @@
 import { EventRegistrationForm } from "@/components/EventRegistrationForm";
-import { QRCodeScanner } from "@/components/QRCodeScanner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Users, CheckCircle, Clock } from "lucide-react";
-import { useState } from "react";
+import { Calendar, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useRoute } from "wouter";
-import type { Event, EventRegistration as EventRegistrationType } from "@shared/schema";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import type { Event } from "@shared/schema";
+import fddkLogo from "@assets/FDDK_1759241722627.png";
 
 export function EventRegistration() {
   const { toast } = useToast();
-  const [activeScanner, setActiveScanner] = useState(false);
   
   // Get event ID from URL parameter
   const [match, params] = useRoute("/event-registration/:eventId");
@@ -24,15 +22,10 @@ export function EventRegistration() {
     queryKey: ['/api/events'],
   });
 
-  // Find specific event by ID or use first event
+  // Find specific event by ID
   const event = eventId 
     ? events.find(e => e.id === eventId) 
     : events[0];
-
-  // Get stats from event object (includes registration counts)
-  const totalRegistrations = (event as any)?.totalRegistrations ?? 0;
-  const approvedAttendees = (event as any)?.approvedRegistrations ?? 0;
-  const checkedInAttendees = (event as any)?.checkedInRegistrations ?? 0;
 
   const registerMutation = useMutation({
     mutationFn: async (data: {
@@ -40,6 +33,7 @@ export function EventRegistration() {
       lastName: string;
       email: string;
       phone: string;
+      companyName?: string;
     }) => {
       if (!event?.id) throw new Error("No event available");
       
@@ -49,7 +43,7 @@ export function EventRegistration() {
     onSuccess: () => {
       toast({
         title: "Registration Submitted!",
-        description: "Thank you for registering! You'll receive a confirmation email shortly.",
+        description: "Thank you for registering! Your registration is pending approval. You'll receive a confirmation email with your QR code once approved.",
       });
       // Invalidate events query to refresh stats
       queryClient.invalidateQueries({ queryKey: ['/api/events'] });
@@ -57,7 +51,7 @@ export function EventRegistration() {
     onError: (error: any) => {
       toast({
         title: "Registration Failed",
-        description: error.message || "Failed to register for event",
+        description: error.message || "Failed to register for event. Please try again.",
         variant: "destructive",
       });
     },
@@ -68,158 +62,116 @@ export function EventRegistration() {
     lastName: string;
     email: string;
     phone: string;
+    companyName?: string;
   }) => {
     registerMutation.mutate(data);
   };
 
-  const handleQRScan = (qrData: string) => {
-    console.log('QR Code scanned:', qrData);
-    toast({
-      title: "Attendee Checked In",
-      description: `Successfully checked in attendee: ${qrData}`,
-    });
-    setActiveScanner(false);
-  };
-
-  const handleScanError = (error: string) => {
-    toast({
-      title: "Scanner Error",
-      description: error,
-      variant: "destructive",
-    });
-  };
-
   if (eventsLoading) {
     return (
-      <div className="p-6 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Event Management</h1>
-          <p className="text-muted-foreground">Loading events...</p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   if (!event) {
     return (
-      <div className="p-6 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Event Management</h1>
-          <p className="text-muted-foreground">No active events available</p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="p-8 text-center">
+            <h2 className="text-2xl font-bold mb-2">Event Not Found</h2>
+            <p className="text-muted-foreground">
+              This event is not available or has been removed.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold" data-testid="page-title">Event Management</h1>
-        <p className="text-muted-foreground">Manage event registrations and check-ins</p>
-      </div>
-
-      {/* Event Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+      {/* Simple Header */}
+      <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Users className="h-8 w-8 text-primary" />
-              <div>
-                <p className="text-2xl font-bold" data-testid="stat-total-registrations">
-                  {totalRegistrations}
-                </p>
-                <p className="text-xs text-muted-foreground">Total Registrations</p>
+              <img 
+                src={fddkLogo} 
+                alt="FDDK Logo" 
+                className="h-16 w-auto"
+                data-testid="logo-fddk"
+              />
+              <div className="border-l pl-3">
+                <h1 className="font-semibold text-base" data-testid="nav-title">
+                  Event Registration
+                </h1>
               </div>
             </div>
-          </CardContent>
-        </Card>
+            <ThemeToggle />
+          </div>
+        </div>
+      </nav>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="h-8 w-8 text-green-500" />
+      {/* Main Content - Event Info and Registration Form */}
+      <div className="container mx-auto px-6 py-12">
+        <div className="max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Event Information */}
+            <div className="space-y-6">
               <div>
-                <p className="text-2xl font-bold" data-testid="stat-approved-attendees">
-                  {approvedAttendees}
+                <Badge 
+                  variant="outline" 
+                  className="mb-4"
+                  style={{ 
+                    borderColor: event.brandingColor || "#ff6600",
+                    color: event.brandingColor || "#ff6600"
+                  }}
+                >
+                  Event Details
+                </Badge>
+                
+                <h1 className="text-4xl font-bold mb-4" data-testid="event-title">
+                  {event.title}
+                </h1>
+                
+                <p className="text-lg text-muted-foreground leading-relaxed mb-6" data-testid="event-description">
+                  {event.description}
                 </p>
-                <p className="text-xs text-muted-foreground">Approved</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <Clock className="h-8 w-8 text-orange-500" />
-              <div>
-                <p className="text-2xl font-bold" data-testid="stat-pending-approvals">
-                  {totalRegistrations - approvedAttendees}
-                </p>
-                <p className="text-xs text-muted-foreground">Pending</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <Calendar className="h-8 w-8 text-blue-500" />
-              <div>
-                <p className="text-2xl font-bold" data-testid="stat-checked-in">
-                  {checkedInAttendees}
-                </p>
-                <p className="text-xs text-muted-foreground">Checked In</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Content */}
-      <Tabs defaultValue="registration" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="registration" data-testid="tab-registration">
-            Event Registration
-          </TabsTrigger>
-          <TabsTrigger value="checkin" data-testid="tab-checkin">
-            Check-In Scanner
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="registration" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div>
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle data-testid="event-info-title">Event Information</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <h3 className="text-xl font-semibold mb-2" data-testid="event-title">
-                    {event.title}
-                  </h3>
-                  <p className="text-muted-foreground mb-4" data-testid="event-description">
-                    {event.description}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    <span className="text-sm" data-testid="event-date">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 text-muted-foreground">
+                    <Calendar className="h-5 w-5" style={{ color: event.brandingColor || "#ff6600" }} />
+                    <span className="text-base" data-testid="event-date">
                       {event.eventDate ? new Date(event.eventDate).toLocaleDateString('en-US', { 
+                        weekday: 'long',
                         year: 'numeric', 
                         month: 'long', 
-                        day: 'numeric' 
-                      }) : 'Date TBD'}
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      }) : 'Date To Be Announced'}
                     </span>
                   </div>
-                  <Badge variant="outline" className="mt-2">
-                    {totalRegistrations} registered
-                  </Badge>
+                </div>
+              </div>
+
+              {/* Additional Event Info Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">What to Expect</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm text-muted-foreground">
+                  <p>✓ Submit your registration through this form</p>
+                  <p>✓ Your registration will be reviewed by our team</p>
+                  <p>✓ Once approved, you'll receive an email with your QR code</p>
+                  <p>✓ Present your QR code at the event for check-in</p>
                 </CardContent>
               </Card>
             </div>
 
+            {/* Registration Form */}
             <div>
               <EventRegistrationForm
                 eventTitle={event.title}
@@ -229,47 +181,15 @@ export function EventRegistration() {
               />
             </div>
           </div>
-        </TabsContent>
+        </div>
+      </div>
 
-        <TabsContent value="checkin" className="space-y-6">
-          <div className="max-w-2xl mx-auto space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle data-testid="checkin-title">Event Check-In</CardTitle>
-                <p className="text-muted-foreground">
-                  Scan attendee QR codes to check them in to the event
-                </p>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col items-center gap-4">
-                  {!activeScanner ? (
-                    <button
-                      onClick={() => setActiveScanner(true)}
-                      className="w-full p-4 border-2 border-dashed border-muted-foreground/25 rounded-lg hover:border-primary/50 transition-colors"
-                      data-testid="button-start-scanner"
-                    >
-                      <div className="text-center">
-                        <Calendar className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
-                        <p className="font-medium">Start QR Scanner</p>
-                        <p className="text-sm text-muted-foreground">
-                          Click to activate camera for QR code scanning
-                        </p>
-                      </div>
-                    </button>
-                  ) : (
-                    <QRCodeScanner
-                      onScan={handleQRScan}
-                      onError={handleScanError}
-                      isActive={activeScanner}
-                      onClose={() => setActiveScanner(false)}
-                    />
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+      {/* Footer */}
+      <footer className="border-t mt-12 py-6">
+        <div className="container mx-auto px-6 text-center text-sm text-muted-foreground">
+          <p>© 2025 FDDK Corporate Wellness Platform. All rights reserved.</p>
+        </div>
+      </footer>
     </div>
   );
 }

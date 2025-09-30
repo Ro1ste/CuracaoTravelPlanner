@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -49,14 +49,10 @@ function Router() {
           <Route path="/admin" component={AdminDashboard} />
           <Route path="/events" component={EventsManagement} />
           <Route path="/events/:eventId/attendees" component={AttendeesManagement} />
-          <Route path="/event-registration" component={EventRegistration} />
-          <Route path="/event-registration/:eventId" component={EventRegistration} />
         </>
       ) : (
         <>
           <Route path="/" component={CompanyDashboard} />
-          <Route path="/event-registration" component={EventRegistration} />
-          <Route path="/event-registration/:eventId" component={EventRegistration} />
         </>
       )}
       <Route component={NotFound} />
@@ -119,8 +115,31 @@ function AuthenticatedApp() {
 
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
+  const [location] = useLocation();
 
-  if (isLoading || !isAuthenticated) {
+  // Event registration pages should always render standalone
+  const isEventRegistration = location.startsWith('/event-registration');
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Always render event registration pages standalone (no sidebar/header)
+  if (isEventRegistration) {
+    return (
+      <Switch>
+        <Route path="/event-registration" component={EventRegistration} />
+        <Route path="/event-registration/:eventId" component={EventRegistration} />
+      </Switch>
+    );
+  }
+
+  // For all other routes, use normal routing
+  if (!isAuthenticated) {
     return <Router />;
   }
 
