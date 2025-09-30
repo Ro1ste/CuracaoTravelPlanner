@@ -187,4 +187,205 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+// In-memory storage for development/testing
+export class MemStorage implements IStorage {
+  private users: Map<string, User> = new Map();
+  private companies: Map<string, Company> = new Map();
+  private tasks: Map<string, Task> = new Map();
+  private proofs: Map<string, TaskProof> = new Map();
+
+  // User operations
+  async getUser(id: string): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const existingUser = this.users.get(userData.id!);
+    const user: User = {
+      id: userData.id!,
+      email: userData.email ?? null,
+      firstName: userData.firstName ?? null,
+      lastName: userData.lastName ?? null,
+      profileImageUrl: userData.profileImageUrl ?? null,
+      isAdmin: userData.isAdmin ?? existingUser?.isAdmin ?? null,
+      createdAt: existingUser?.createdAt ?? new Date(),
+      updatedAt: new Date(),
+    };
+    this.users.set(userData.id!, user);
+    return user;
+  }
+
+  // Company operations
+  async getCompany(id: string): Promise<Company | undefined> {
+    return this.companies.get(id);
+  }
+
+  async getCompanyByUserId(userId: string): Promise<Company | undefined> {
+    return Array.from(this.companies.values()).find(c => c.userId === userId);
+  }
+
+  async getAllCompanies(): Promise<Company[]> {
+    return Array.from(this.companies.values()).sort((a, b) => (b.totalPoints ?? 0) - (a.totalPoints ?? 0));
+  }
+
+  async createCompany(companyData: UpsertCompany): Promise<Company> {
+    const id = `company-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const company: Company = {
+      id,
+      name: companyData.name,
+      email: companyData.email,
+      contactPersonName: companyData.contactPersonName,
+      phone: companyData.phone,
+      logoUrl: companyData.logoUrl ?? null,
+      brandingColor: companyData.brandingColor ?? null,
+      totalPoints: companyData.totalPoints ?? null,
+      totalCaloriesBurned: companyData.totalCaloriesBurned ?? null,
+      dailyGoal: companyData.dailyGoal ?? null,
+      teamSize: companyData.teamSize ?? null,
+      userId: companyData.userId ?? null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.companies.set(id, company);
+    return company;
+  }
+
+  async updateCompany(id: string, updates: Partial<UpsertCompany>): Promise<Company | undefined> {
+    const company = this.companies.get(id);
+    if (!company) return undefined;
+    
+    const updated: Company = {
+      ...company,
+      ...updates,
+      updatedAt: new Date(),
+    };
+    this.companies.set(id, updated);
+    return updated;
+  }
+
+  async updateCompanyPoints(id: string, pointsToAdd: number): Promise<Company | undefined> {
+    const company = this.companies.get(id);
+    if (!company) return undefined;
+    
+    const updated: Company = {
+      ...company,
+      totalPoints: (company.totalPoints ?? 0) + pointsToAdd,
+      updatedAt: new Date(),
+    };
+    this.companies.set(id, updated);
+    return updated;
+  }
+
+  // Task operations
+  async getAllTasks(): Promise<Task[]> {
+    return Array.from(this.tasks.values()).sort((a, b) => 
+      (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0)
+    );
+  }
+
+  async getTaskById(id: string): Promise<Task | undefined> {
+    return this.tasks.get(id);
+  }
+
+  async createTask(taskData: UpsertTask): Promise<Task> {
+    const id = `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const task: Task = {
+      id,
+      title: taskData.title,
+      description: taskData.description ?? null,
+      date: taskData.date ?? null,
+      videoUrl: taskData.videoUrl ?? null,
+      pointsReward: taskData.pointsReward ?? null,
+      caloriesBurned: taskData.caloriesBurned ?? null,
+      createdAt: new Date(),
+    };
+    this.tasks.set(id, task);
+    return task;
+  }
+
+  async updateTask(id: string, updates: Partial<UpsertTask>): Promise<Task | undefined> {
+    const task = this.tasks.get(id);
+    if (!task) return undefined;
+    
+    const updated: Task = {
+      ...task,
+      ...updates,
+    };
+    this.tasks.set(id, updated);
+    return updated;
+  }
+
+  async deleteTask(id: string): Promise<void> {
+    this.tasks.delete(id);
+  }
+
+  // Proof operations
+  async getProofsByCompany(companyId: string): Promise<TaskProof[]> {
+    return Array.from(this.proofs.values()).filter(p => p.companyId === companyId);
+  }
+
+  async getProofById(id: string): Promise<TaskProof | undefined> {
+    return this.proofs.get(id);
+  }
+
+  async getPendingProofs(): Promise<TaskProof[]> {
+    return Array.from(this.proofs.values()).filter(p => p.status === 'pending');
+  }
+
+  async getAllProofs(): Promise<TaskProof[]> {
+    return Array.from(this.proofs.values()).sort((a, b) => 
+      (b.submittedAt?.getTime() ?? 0) - (a.submittedAt?.getTime() ?? 0)
+    );
+  }
+
+  async createProof(proofData: UpsertTaskProof): Promise<TaskProof> {
+    const id = `proof-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const proof: TaskProof = {
+      id,
+      taskId: proofData.taskId,
+      companyId: proofData.companyId,
+      contentUrl: proofData.contentUrl,
+      contentType: proofData.contentType,
+      status: proofData.status ?? null,
+      adminNotes: proofData.adminNotes ?? null,
+      submittedAt: new Date(),
+      reviewedAt: proofData.reviewedAt ?? null,
+    };
+    this.proofs.set(id, proof);
+    return proof;
+  }
+
+  async updateProofStatus(
+    id: string, 
+    status: 'approved' | 'rejected', 
+    adminNotes?: string
+  ): Promise<TaskProof | undefined> {
+    const proof = this.proofs.get(id);
+    if (!proof) return undefined;
+    
+    const updated: TaskProof = {
+      ...proof,
+      status,
+      adminNotes: adminNotes ?? null,
+      reviewedAt: new Date(),
+    };
+    this.proofs.set(id, updated);
+    return updated;
+  }
+
+  async updateProofContent(id: string, contentUrl: string): Promise<TaskProof | undefined> {
+    const proof = this.proofs.get(id);
+    if (!proof) return undefined;
+    
+    const updated: TaskProof = {
+      ...proof,
+      contentUrl,
+    };
+    this.proofs.set(id, updated);
+    return updated;
+  }
+}
+
+// Use in-memory storage in dev mode, otherwise use database
+const DEV_MODE = process.env.NODE_ENV === 'development' && process.env.USE_DEV_STORAGE === 'true';
+export const storage: IStorage = DEV_MODE ? new MemStorage() : new DatabaseStorage();
