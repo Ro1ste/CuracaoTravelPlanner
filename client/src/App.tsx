@@ -13,6 +13,7 @@ import { Landing } from "@/pages/Landing";
 import { CompanyDashboard } from "@/pages/CompanyDashboard";
 import { AdminDashboard } from "@/pages/AdminDashboard";
 import { EventRegistration } from "@/pages/EventRegistration";
+import { EventsManagement } from "@/pages/EventsManagement";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -31,6 +32,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Landing} />
         <Route path="/event-registration" component={EventRegistration} />
+        <Route path="/event-registration/:eventId" component={EventRegistration} />
         <Route component={Landing} />
       </Switch>
     );
@@ -44,6 +46,7 @@ function Router() {
         <>
           <Route path="/" component={AdminDashboard} />
           <Route path="/admin" component={AdminDashboard} />
+          <Route path="/events" component={EventsManagement} />
         </>
       ) : (
         <>

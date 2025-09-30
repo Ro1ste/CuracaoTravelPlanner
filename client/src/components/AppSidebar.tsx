@@ -64,7 +64,7 @@ export function AppSidebar({ userType }: AppSidebarProps) {
     },
     {
       title: "Events",
-      url: "/",
+      url: "/events",
       icon: Calendar,
     },
     {

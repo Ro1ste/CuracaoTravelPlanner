@@ -67,10 +67,7 @@ export function AdminDashboard() {
   };
 
   const handleViewEvents = () => {
-    toast({
-      title: "Navigation",
-      description: "Event management feature coming soon",
-    });
+    window.location.href = "/events";
   };
 
   return (

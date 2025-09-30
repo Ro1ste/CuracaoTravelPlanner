@@ -8,19 +8,26 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useRoute } from "wouter";
 import type { Event, EventRegistration as EventRegistrationType } from "@shared/schema";
 
 export function EventRegistration() {
   const { toast } = useToast();
   const [activeScanner, setActiveScanner] = useState(false);
+  
+  // Get event ID from URL parameter
+  const [match, params] = useRoute("/event-registration/:eventId");
+  const eventId = params?.eventId;
 
   // Fetch events
   const { data: events = [], isLoading: eventsLoading } = useQuery<Event[]>({
     queryKey: ['/api/events'],
   });
 
-  // Use first active event as default
-  const event = events[0];
+  // Find specific event by ID or use first event
+  const event = eventId 
+    ? events.find(e => e.id === eventId) 
+    : events[0];
 
   // Get stats from event object (includes registration counts)
   const totalRegistrations = (event as any)?.totalRegistrations ?? 0;
