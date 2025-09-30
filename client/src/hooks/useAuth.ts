@@ -7,6 +7,8 @@ interface User {
   lastName?: string;
   profileImageUrl?: string;
   isAdmin?: boolean;
+  hasCompany?: boolean;
+  companyId?: string;
 }
 
 export function useAuth() {
