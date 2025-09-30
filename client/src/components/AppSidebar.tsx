@@ -26,17 +26,17 @@ export function AppSidebar({ userType }: AppSidebarProps) {
     },
     {
       title: "Tasks",
-      url: "/tasks",
+      url: "/",
       icon: CheckSquare,
     },
     {
       title: "Leaderboard",
-      url: "/leaderboard",
+      url: "/",
       icon: Trophy,
     },
     {
       title: "Profile",
-      url: "/profile",
+      url: "/",
       icon: Settings,
     },
   ];
@@ -44,32 +44,32 @@ export function AppSidebar({ userType }: AppSidebarProps) {
   const adminMenuItems = [
     {
       title: "Dashboard",
-      url: "/admin",
+      url: "/",
       icon: Home,
     },
     {
       title: "Companies",
-      url: "/admin/companies",
+      url: "/",
       icon: Users,
     },
     {
       title: "Tasks",
-      url: "/admin/tasks",
+      url: "/",
       icon: CheckSquare,
     },
     {
       title: "Proof Approval",
-      url: "/admin/proofs",
+      url: "/",
       icon: FileText,
     },
     {
       title: "Events",
-      url: "/admin/events",
+      url: "/",
       icon: Calendar,
     },
     {
       title: "Analytics",
-      url: "/admin/analytics",
+      url: "/",
       icon: BarChart3,
     },
   ];

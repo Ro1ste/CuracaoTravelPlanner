@@ -58,7 +58,7 @@ export function ObjectUploader({
       .use(XHRUpload, {
         endpoint: "placeholder",
         method: "PUT",
-        getUploadParameters: async (file) => {
+        getUploadParameters: async (file: any) => {
           const params = await onGetUploadParameters();
           return {
             method: params.method,
@@ -66,9 +66,19 @@ export function ObjectUploader({
             headers: {},
           };
         },
+        getResponseData: (xhr: XMLHttpRequest) => {
+          // GCS signed URLs return empty body or XML, not JSON
+          // Extract the upload URL from the response URL (without query parameters)
+          const uploadUrl = xhr.responseURL.split('?')[0];
+          return {
+            url: uploadUrl,
+          };
+        },
       })
       .on("complete", (result) => {
         onComplete?.(result);
+        // Auto-close modal after upload completes
+        setShowModal(false);
       })
   );
 

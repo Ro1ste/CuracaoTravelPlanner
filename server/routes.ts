@@ -237,6 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const proof = await storage.createProof(proofData);
+      console.log('Created proof:', JSON.stringify(proof, null, 2));
       res.status(201).json(proof);
     } catch (error: any) {
       console.error("Error creating proof:", error);

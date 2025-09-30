@@ -98,12 +98,13 @@ export function ProofSubmissionDialog({
       }
 
       // First, create the proof with a placeholder URL
-      const proof = await apiRequest<{ id: string }>("POST", "/api/proofs", {
+      const res = await apiRequest("POST", "/api/proofs", {
         taskId,
         companyId,
         contentUrl: uploadedUrl,
         contentType: data.contentType,
       });
+      const proof = await res.json();
 
       // Then update the proof with the normalized object path and set ACL
       await apiRequest("PUT", `/api/proofs/${proof.id}/content`, {

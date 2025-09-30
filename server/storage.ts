@@ -346,7 +346,7 @@ export class MemStorage implements IStorage {
       companyId: proofData.companyId,
       contentUrl: proofData.contentUrl,
       contentType: proofData.contentType,
-      status: proofData.status ?? null,
+      status: proofData.status ?? 'pending',
       adminNotes: proofData.adminNotes ?? null,
       submittedAt: new Date(),
       reviewedAt: proofData.reviewedAt ?? null,
