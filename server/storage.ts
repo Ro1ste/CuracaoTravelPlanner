@@ -7,10 +7,16 @@ import {
   type UpsertTask,
   type TaskProof,
   type UpsertTaskProof,
+  type Event,
+  type UpsertEvent,
+  type EventRegistration,
+  type UpsertEventRegistration,
   users,
   companies,
   tasks,
-  taskProofs
+  taskProofs,
+  events,
+  eventRegistrations
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
@@ -44,6 +50,20 @@ export interface IStorage {
   createProof(proof: UpsertTaskProof): Promise<TaskProof>;
   updateProofStatus(id: string, status: 'approved' | 'rejected', adminNotes?: string): Promise<TaskProof | undefined>;
   updateProofContent(id: string, contentUrl: string): Promise<TaskProof | undefined>;
+  
+  // Event operations
+  getAllEvents(): Promise<Event[]>;
+  getEventById(id: string): Promise<Event | undefined>;
+  getActiveEvents(): Promise<Event[]>;
+  createEvent(event: UpsertEvent): Promise<Event>;
+  updateEvent(id: string, updates: Partial<UpsertEvent>): Promise<Event | undefined>;
+  
+  // Event registration operations
+  getEventRegistrations(eventId: string): Promise<EventRegistration[]>;
+  getEventRegistrationById(id: string): Promise<EventRegistration | undefined>;
+  createEventRegistration(registration: UpsertEventRegistration): Promise<EventRegistration>;
+  updateRegistrationStatus(id: string, status: 'approved' | 'rejected'): Promise<EventRegistration | undefined>;
+  checkInRegistration(id: string): Promise<EventRegistration | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -185,6 +205,73 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return proof;
   }
+
+  // Event operations
+  async getAllEvents(): Promise<Event[]> {
+    return await db.select().from(events).orderBy(desc(events.eventDate));
+  }
+
+  async getEventById(id: string): Promise<Event | undefined> {
+    const [event] = await db.select().from(events).where(eq(events.id, id));
+    return event;
+  }
+
+  async getActiveEvents(): Promise<Event[]> {
+    return await db.select().from(events).where(eq(events.isActive, true)).orderBy(desc(events.eventDate));
+  }
+
+  async createEvent(eventData: UpsertEvent): Promise<Event> {
+    const [event] = await db.insert(events).values(eventData).returning();
+    return event;
+  }
+
+  async updateEvent(id: string, updates: Partial<UpsertEvent>): Promise<Event | undefined> {
+    const [event] = await db
+      .update(events)
+      .set(updates)
+      .where(eq(events.id, id))
+      .returning();
+    return event;
+  }
+
+  // Event registration operations
+  async getEventRegistrations(eventId: string): Promise<EventRegistration[]> {
+    return await db.select().from(eventRegistrations).where(eq(eventRegistrations.eventId, eventId));
+  }
+
+  async getEventRegistrationById(id: string): Promise<EventRegistration | undefined> {
+    const [registration] = await db.select().from(eventRegistrations).where(eq(eventRegistrations.id, id));
+    return registration;
+  }
+
+  async createEventRegistration(registrationData: UpsertEventRegistration): Promise<EventRegistration> {
+    const [registration] = await db.insert(eventRegistrations).values(registrationData).returning();
+    return registration;
+  }
+
+  async updateRegistrationStatus(id: string, status: 'approved' | 'rejected'): Promise<EventRegistration | undefined> {
+    const [registration] = await db
+      .update(eventRegistrations)
+      .set({ 
+        status,
+        approvedAt: status === 'approved' ? new Date() : null
+      })
+      .where(eq(eventRegistrations.id, id))
+      .returning();
+    return registration;
+  }
+
+  async checkInRegistration(id: string): Promise<EventRegistration | undefined> {
+    const [registration] = await db
+      .update(eventRegistrations)
+      .set({ 
+        checkedIn: true,
+        checkedInAt: new Date()
+      })
+      .where(eq(eventRegistrations.id, id))
+      .returning();
+    return registration;
+  }
 }
 
 // In-memory storage for development/testing
@@ -193,6 +280,8 @@ export class MemStorage implements IStorage {
   private companies: Map<string, Company> = new Map();
   private tasks: Map<string, Task> = new Map();
   private proofs: Map<string, TaskProof> = new Map();
+  private events: Map<string, Event> = new Map();
+  private eventRegistrations: Map<string, EventRegistration> = new Map();
 
   // User operations
   async getUser(id: string): Promise<User | undefined> {
@@ -382,6 +471,107 @@ export class MemStorage implements IStorage {
       contentUrl,
     };
     this.proofs.set(id, updated);
+    return updated;
+  }
+
+  // Event operations
+  async getAllEvents(): Promise<Event[]> {
+    return Array.from(this.events.values()).sort(
+      (a, b) => (b.eventDate?.getTime() ?? 0) - (a.eventDate?.getTime() ?? 0)
+    );
+  }
+
+  async getEventById(id: string): Promise<Event | undefined> {
+    return this.events.get(id);
+  }
+
+  async getActiveEvents(): Promise<Event[]> {
+    return Array.from(this.events.values())
+      .filter(event => event.isActive)
+      .sort((a, b) => (b.eventDate?.getTime() ?? 0) - (a.eventDate?.getTime() ?? 0));
+  }
+
+  async createEvent(eventData: UpsertEvent): Promise<Event> {
+    const id = `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const event: Event = {
+      id,
+      title: eventData.title,
+      description: eventData.description ?? null,
+      eventDate: eventData.eventDate,
+      brandingColor: eventData.brandingColor ?? "#211100",
+      isActive: true,
+      createdAt: new Date(),
+    };
+    this.events.set(id, event);
+    return event;
+  }
+
+  async updateEvent(id: string, updates: Partial<UpsertEvent>): Promise<Event | undefined> {
+    const event = this.events.get(id);
+    if (!event) return undefined;
+    
+    const updated: Event = {
+      ...event,
+      ...updates,
+    };
+    this.events.set(id, updated);
+    return updated;
+  }
+
+  // Event registration operations
+  async getEventRegistrations(eventId: string): Promise<EventRegistration[]> {
+    return Array.from(this.eventRegistrations.values()).filter(
+      reg => reg.eventId === eventId
+    );
+  }
+
+  async getEventRegistrationById(id: string): Promise<EventRegistration | undefined> {
+    return this.eventRegistrations.get(id);
+  }
+
+  async createEventRegistration(registrationData: UpsertEventRegistration): Promise<EventRegistration> {
+    const id = `reg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const registration: EventRegistration = {
+      id,
+      eventId: registrationData.eventId,
+      firstName: registrationData.firstName,
+      lastName: registrationData.lastName,
+      email: registrationData.email,
+      phone: registrationData.phone,
+      status: 'pending',
+      qrCode: `QR-${id}`,
+      checkedIn: false,
+      checkedInAt: null,
+      registeredAt: new Date(),
+      approvedAt: null,
+    };
+    this.eventRegistrations.set(id, registration);
+    return registration;
+  }
+
+  async updateRegistrationStatus(id: string, status: 'approved' | 'rejected'): Promise<EventRegistration | undefined> {
+    const registration = this.eventRegistrations.get(id);
+    if (!registration) return undefined;
+    
+    const updated: EventRegistration = {
+      ...registration,
+      status,
+      approvedAt: status === 'approved' ? new Date() : null,
+    };
+    this.eventRegistrations.set(id, updated);
+    return updated;
+  }
+
+  async checkInRegistration(id: string): Promise<EventRegistration | undefined> {
+    const registration = this.eventRegistrations.get(id);
+    if (!registration) return undefined;
+    
+    const updated: EventRegistration = {
+      ...registration,
+      checkedIn: true,
+      checkedInAt: new Date(),
+    };
+    this.eventRegistrations.set(id, updated);
     return updated;
   }
 }
