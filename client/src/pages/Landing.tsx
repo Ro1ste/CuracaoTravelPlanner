@@ -6,8 +6,14 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import fddkLogo from "@assets/FDDK_1759241722627.png";
 
 export function Landing() {
+  const isDevMode = import.meta.env.VITE_DEV_MODE === 'true';
+  
   const handleLogin = () => {
     window.location.href = "/api/login";
+  };
+
+  const handleDevLogin = (role: 'admin' | 'company') => {
+    window.location.href = `/api/dev/login?role=${role}`;
   };
 
   const handleLearnMore = () => {
@@ -89,26 +95,53 @@ export function Landing() {
               interactive dashboards, and manage events with seamless QR code integration.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                size="lg" 
-                onClick={handleLogin}
-                className="text-lg px-8 py-6"
-                data-testid="button-login"
-              >
-                Get Started Today
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline"
-                onClick={handleLearnMore}
-                className="text-lg px-8 py-6 bg-background/90 backdrop-blur"
-                data-testid="button-learn-more"
-              >
-                Learn More
-              </Button>
-            </div>
+            {isDevMode ? (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button 
+                    size="lg" 
+                    onClick={() => handleDevLogin('company')}
+                    className="text-lg px-8 py-6"
+                    data-testid="button-dev-login-company"
+                  >
+                    Login as Company
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                  <Button 
+                    size="lg" 
+                    variant="secondary"
+                    onClick={() => handleDevLogin('admin')}
+                    className="text-lg px-8 py-6"
+                    data-testid="button-dev-login-admin"
+                  >
+                    Login as Admin
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">Dev Mode - No database required</p>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button 
+                  size="lg" 
+                  onClick={handleLogin}
+                  className="text-lg px-8 py-6"
+                  data-testid="button-login"
+                >
+                  Get Started Today
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  onClick={handleLearnMore}
+                  className="text-lg px-8 py-6 bg-background/90 backdrop-blur"
+                  data-testid="button-learn-more"
+                >
+                  Learn More
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
