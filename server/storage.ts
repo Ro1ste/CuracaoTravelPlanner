@@ -519,6 +519,8 @@ export class MemStorage implements IStorage {
       eventDate: eventData.eventDate,
       brandingColor: eventData.brandingColor ?? "#211100",
       isActive: true,
+      emailSubject: null,
+      emailBodyText: null,
       createdAt: new Date(),
     };
     this.events.set(id, event);
@@ -557,8 +559,11 @@ export class MemStorage implements IStorage {
       lastName: registrationData.lastName,
       email: registrationData.email,
       phone: registrationData.phone,
+      companyName: registrationData.companyName ?? null,
       status: 'pending',
-      qrCode: `QR-${id}`,
+      qrCode: null,
+      qrCodePayload: null,
+      qrCodeIssuedAt: null,
       checkedIn: false,
       checkedInAt: null,
       registeredAt: new Date(),
