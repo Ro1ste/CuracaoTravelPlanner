@@ -47,10 +47,14 @@ function Router() {
           <Route path="/" component={AdminDashboard} />
           <Route path="/admin" component={AdminDashboard} />
           <Route path="/events" component={EventsManagement} />
+          <Route path="/event-registration" component={EventRegistration} />
+          <Route path="/event-registration/:eventId" component={EventRegistration} />
         </>
       ) : (
         <>
           <Route path="/" component={CompanyDashboard} />
+          <Route path="/event-registration" component={EventRegistration} />
+          <Route path="/event-registration/:eventId" component={EventRegistration} />
         </>
       )}
       <Route component={NotFound} />
