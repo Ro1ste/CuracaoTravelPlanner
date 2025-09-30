@@ -1,4 +1,4 @@
-import { Home, Trophy, Calendar, Settings, Users, BarChart3, FileText, CheckSquare, UserPlus } from "lucide-react";
+import { Home, Trophy, Calendar, Settings, Users, BarChart3, FileText, CheckSquare } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -103,23 +103,6 @@ export function AppSidebar({ userType }: AppSidebarProps) {
           </SidebarGroupContent>
         </SidebarGroup>
         
-        {userType === 'admin' && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Events</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild data-testid="nav-event-registration">
-                    <a href="/admin/event-registration">
-                      <UserPlus />
-                      <span>Event Registration</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
       </SidebarContent>
     </Sidebar>
   );
