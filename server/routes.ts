@@ -267,7 +267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Award points only on transition from non-approved to approved
       const task = await storage.getTaskById(proof.taskId);
-      if (task) {
+      if (task && task.pointsReward) {
         if (previousStatus !== 'approved' && reviewData.status === 'approved') {
           // Award points when approving for the first time
           await storage.updateCompanyPoints(proof.companyId, task.pointsReward);
