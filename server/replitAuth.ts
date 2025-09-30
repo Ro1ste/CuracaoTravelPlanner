@@ -117,7 +117,19 @@ async function seedDevData() {
       videoUrl: null,
       date: new Date(),
     });
-    console.log("✅ Dev seed data: Created sample tasks");
+
+    // Create sample event
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 30); // 30 days from now
+    
+    await storage.createEvent({
+      title: "Corporate Wellness Summit 2024",
+      description: "Join us for an inspiring day of wellness workshops, networking, and team building activities. Experience keynote speakers, interactive sessions, and connect with wellness professionals.",
+      eventDate: futureDate,
+      brandingColor: "#ff6600",
+    });
+    
+    console.log("✅ Dev seed data: Created sample tasks and event");
   }
 }
 
