@@ -185,9 +185,16 @@ export function EventRegistration() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t mt-12 py-6">
-        <div className="container mx-auto px-6 text-center text-sm text-muted-foreground">
-          <p>© 2025 FDDK Corporate Wellness Platform. All rights reserved.</p>
+      <footer className="border-t bg-muted/30">
+        <div className="container mx-auto px-6 py-8">
+          <div className="text-center space-y-2">
+            <p className="text-sm text-muted-foreground" data-testid="footer-text">
+              Corporate Wellness Platform powered by <span className="font-semibold text-foreground">Velitt</span>, <span className="font-semibold text-foreground">Digital Adventures</span> and <span className="font-semibold text-foreground">FDDK</span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              © 2024 FDDK. All rights reserved.
+            </p>
+          </div>
         </div>
       </footer>
     </div>
