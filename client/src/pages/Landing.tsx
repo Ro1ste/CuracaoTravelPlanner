@@ -2,6 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Award, Users, Calendar, BarChart3, ArrowRight, CheckCircle } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import fddkLogo from "@assets/FDDK_1759241722627.png";
 
 export function Landing() {
   const handleLogin = () => {
@@ -34,13 +36,34 @@ export function Landing() {
   const benefits = [
     "Boost employee engagement through gamification",
     "Track company-wide wellness metrics",
-    "Organize and manage wellness events seamlessly", 
     "Foster healthy competition between teams",
     "Generate detailed wellness reports and analytics"
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+      {/* Navigation Header */}
+      <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img 
+                src={fddkLogo} 
+                alt="FDDK Logo" 
+                className="h-10 w-auto"
+                data-testid="logo-fddk"
+              />
+              <div className="border-l pl-3">
+                <h1 className="font-semibold text-lg" data-testid="nav-title">
+                  Corporate Wellness Platform
+                </h1>
+              </div>
+            </div>
+            <ThemeToggle />
+          </div>
+        </div>
+      </nav>
+
       {/* Hero Section */}
       <div className="relative">
         {/* Dark wash overlay for better text contrast */}
@@ -49,7 +72,7 @@ export function Landing() {
         <div className="relative container mx-auto px-6 py-24">
           <div className="max-w-4xl mx-auto text-center space-y-8">
             <Badge variant="outline" className="text-sm bg-background/90 backdrop-blur">
-              Corporate Wellness Platform
+              FDDK Wellness Initiative
             </Badge>
             
             <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-foreground">
@@ -165,9 +188,12 @@ export function Landing() {
       {/* Footer */}
       <footer className="border-t bg-muted/30">
         <div className="container mx-auto px-6 py-8">
-          <div className="text-center text-muted-foreground">
-            <p data-testid="footer-text">
-              © 2024 Corporate Wellness Platform. Empowering healthier workplaces.
+          <div className="text-center space-y-2">
+            <p className="text-sm text-muted-foreground" data-testid="footer-text">
+              Corporate Wellness Platform powered by <span className="font-semibold text-foreground">Velitt</span>, <span className="font-semibold text-foreground">Digital Adventures</span> and <span className="font-semibold text-foreground">FDDK</span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              © 2024 FDDK. All rights reserved.
             </p>
           </div>
         </div>
