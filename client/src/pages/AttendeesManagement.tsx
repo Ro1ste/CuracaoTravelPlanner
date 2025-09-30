@@ -1,0 +1,220 @@
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useParams } from "wouter";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle, XCircle, Mail, ArrowLeft } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { EventRegistration, Event } from "@shared/schema";
+import { Link } from "wouter";
+
+export function AttendeesManagement() {
+  const { toast } = useToast();
+  const params = useParams();
+  const eventId = params.eventId as string;
+
+  const { data: event } = useQuery<Event>({
+    queryKey: ['/api/events', eventId],
+    queryFn: async () => {
+      const res = await fetch(`/api/events/${eventId}`);
+      if (!res.ok) throw new Error('Failed to fetch event');
+      return res.json();
+    },
+  });
+
+  const { data: attendees = [], isLoading } = useQuery<EventRegistration[]>({
+    queryKey: ['/api/events', eventId, 'registrations'],
+    queryFn: async () => {
+      const res = await fetch(`/api/events/${eventId}/registrations`);
+      if (!res.ok) throw new Error('Failed to fetch registrations');
+      return res.json();
+    },
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ attendeeId, status }: { attendeeId: string; status: 'approved' | 'rejected' }) => {
+      await apiRequest("PATCH", `/api/events/${eventId}/registrations/${attendeeId}`, { status });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/events', eventId, 'registrations'] });
+      toast({
+        title: "Status Updated",
+        description: "Attendee status has been updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update attendee status",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resendEmailMutation = useMutation({
+    mutationFn: async (attendeeId: string) => {
+      await apiRequest("POST", `/api/events/${eventId}/registrations/${attendeeId}/resend`, {});
+    },
+    onSuccess: () => {
+      toast({
+        title: "Email Resent",
+        description: "QR code email has been resent successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Resend Failed",
+        description: error.message || "Failed to resend email",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const pendingAttendees = attendees.filter(a => a.status === 'pending');
+  const approvedAttendees = attendees.filter(a => a.status === 'approved');
+  const rejectedAttendees = attendees.filter(a => a.status === 'rejected');
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center gap-4">
+        <Link href="/events">
+          <Button variant="ghost" size="sm" data-testid="button-back">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Events
+          </Button>
+        </Link>
+      </div>
+
+      <div>
+        <h1 className="text-3xl font-bold" data-testid="page-title">Attendee Management</h1>
+        <p className="text-muted-foreground">{event?.title}</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{pendingAttendees.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Approved</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{approvedAttendees.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Rejected</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{rejectedAttendees.length}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>All Registrations</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {attendees.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">No registrations yet</p>
+          ) : (
+            <div className="space-y-4">
+              {attendees.map((attendee) => (
+                <div
+                  key={attendee.id}
+                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border rounded-lg hover-elevate"
+                  data-testid={`attendee-${attendee.id}`}
+                >
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold" data-testid={`name-${attendee.id}`}>
+                        {attendee.firstName} {attendee.lastName}
+                      </h3>
+                      <Badge
+                        variant={
+                          attendee.status === 'approved'
+                            ? 'default'
+                            : attendee.status === 'rejected'
+                            ? 'destructive'
+                            : 'secondary'
+                        }
+                        data-testid={`status-${attendee.id}`}
+                      >
+                        {attendee.status}
+                      </Badge>
+                    </div>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <p data-testid={`email-${attendee.id}`}>Email: {attendee.email}</p>
+                      <p data-testid={`phone-${attendee.id}`}>Phone: {attendee.phone}</p>
+                      {attendee.companyName && (
+                        <p data-testid={`company-${attendee.id}`}>Company: {attendee.companyName}</p>
+                      )}
+                      <p className="text-xs">
+                        Registered: {new Date(attendee.registeredAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2 flex-wrap">
+                    {attendee.status === 'pending' && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => updateStatusMutation.mutate({ attendeeId: attendee.id, status: 'approved' })}
+                          disabled={updateStatusMutation.isPending}
+                          data-testid={`button-approve-${attendee.id}`}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => updateStatusMutation.mutate({ attendeeId: attendee.id, status: 'rejected' })}
+                          disabled={updateStatusMutation.isPending}
+                          data-testid={`button-reject-${attendee.id}`}
+                        >
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Reject
+                        </Button>
+                      </>
+                    )}
+                    {attendee.status === 'approved' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => resendEmailMutation.mutate(attendee.id)}
+                        disabled={resendEmailMutation.isPending}
+                        data-testid={`button-resend-${attendee.id}`}
+                      >
+                        <Mail className="h-4 w-4 mr-1" />
+                        Resend QR Code
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

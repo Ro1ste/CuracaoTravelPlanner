@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Calendar, Users, Link2, Plus, Copy, Check } from "lucide-react";
+import { Calendar, Users, Link2, Plus, Copy, Check, UserCheck } from "lucide-react";
+import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Event } from "@shared/schema";
@@ -35,7 +36,9 @@ export function EventsManagement() {
       (date) => new Date(date) > new Date(),
       "Event date must be in the future"
     ),
-    brandingColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format (use hex color like #ff6600)")
+    brandingColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format (use hex color like #ff6600)"),
+    emailSubject: z.string().optional(),
+    emailBodyText: z.string().optional()
   });
 
   const form = useForm({
@@ -44,7 +47,9 @@ export function EventsManagement() {
       title: "",
       description: "",
       eventDate: "",
-      brandingColor: "#ff6600"
+      brandingColor: "#ff6600",
+      emailSubject: "",
+      emailBodyText: ""
     }
   });
 
@@ -213,6 +218,50 @@ export function EventsManagement() {
                   )}
                 />
 
+                <div className="border-t pt-4 space-y-4">
+                  <h3 className="text-sm font-semibold">Email Template (Optional)</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Customize the email sent when attendees are approved. Leave blank to use default template.
+                  </p>
+                  
+                  <FormField
+                    control={form.control}
+                    name="emailSubject"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Subject</FormLabel>
+                        <FormControl>
+                          <Input 
+                            {...field} 
+                            placeholder="Your Registration for {Event Name} is Approved!"
+                            data-testid="input-email-subject"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="emailBodyText"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Body</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            {...field} 
+                            placeholder="Dear attendee, your registration has been approved..."
+                            rows={4}
+                            data-testid="input-email-body"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <div className="flex justify-end gap-2">
                   <Button
                     type="button"
@@ -356,6 +405,16 @@ export function EventsManagement() {
                           )}
                         </Button>
                       </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 pt-4 border-t">
+                      <Link href={`/events/${event.id}/attendees`}>
+                        <Button variant="outline" size="sm" data-testid={`button-manage-attendees-${event.id}`}>
+                          <UserCheck className="h-4 w-4 mr-2" />
+                          Manage Attendees
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 </CardContent>
