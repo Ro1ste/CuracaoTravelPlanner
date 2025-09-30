@@ -164,6 +164,35 @@ A comprehensive corporate wellness and event management platform built with Full
 - ⚠️ **Single Session**: Dev mode uses a single admin and company user
 - ⚠️ **No File Uploads**: Object storage requires real database
 
+### Technical Details:
+
+**DEV_MODE Condition:**
+```javascript
+// Backend (server/storage.ts, server/replitAuth.ts)
+const DEV_MODE = process.env.NODE_ENV === 'development' && process.env.USE_DEV_STORAGE !== 'false';
+
+// Frontend (client/src/pages/Landing.tsx)
+const showDevButtons = import.meta.env.VITE_DEV_MODE !== 'false';
+```
+
+**Truth Table:**
+| NODE_ENV | USE_DEV_STORAGE | Backend Mode | Dev Buttons |
+|----------|-----------------|--------------|-------------|
+| development | (unset) | MemStorage | Visible |
+| development | false | DatabaseStorage | Hidden |
+| production | (any) | DatabaseStorage | Hidden |
+
+**Dev Endpoints:**
+- `/api/dev/login?role=company` - Login as company user
+- `/api/dev/login?role=admin` - Login as admin user
+- Only registered when DEV_MODE is true (security safeguard)
+
+**Environment Variables:**
+- `NODE_ENV` - Set to 'development' by npm script
+- `USE_DEV_STORAGE` - Controls storage backend (defaults to true in dev)
+- `VITE_DEV_MODE` - Controls frontend dev buttons (defaults to true in dev)
+- `SESSION_SECRET` - Required in production (fails fast if missing)
+
 ## 📱 How to Access
 
 **Dev Mode** (default in development):
