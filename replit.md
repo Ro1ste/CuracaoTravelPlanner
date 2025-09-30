@@ -20,6 +20,8 @@ A comprehensive corporate wellness and event management platform built with Full
 - ✅ Company Dashboard with task management and leaderboards
 - ✅ Admin Dashboard with company oversight and proof management
 - ✅ Event Registration with QR code functionality
+- ✅ Attendee Management page with approval workflow
+- ✅ Email template customization in event creation
 - ✅ Beautiful Material Design interface with animations
 - ✅ Role-based routing and protected components
 - ✅ Complete component library with examples
@@ -29,6 +31,9 @@ A comprehensive corporate wellness and event management platform built with Full
 - ✅ Full authentication with Replit Auth
 - ✅ Database schema and storage interface
 - ✅ Complete REST API with all CRUD operations
+- ✅ QR code generation service with signed tokens
+- ✅ Email service integration with Resend
+- ✅ Automated email delivery on attendee approval
 - ✅ In-memory storage mode for testing
 - ✅ Dev Mode with role-based login
 
@@ -53,6 +58,10 @@ A comprehensive corporate wellness and event management platform built with Full
 - Task management with proof submissions
 - Company leaderboards and analytics
 - Event registration and QR check-ins
+- Admin attendee approval workflow
+- Automated QR code email delivery via Resend
+- Customizable email templates per event
+- Shareable event registration links
 - File upload capabilities (30MB limit)
 - Admin dashboard for oversight
 - Dark/light theme switching
@@ -75,7 +84,9 @@ A comprehensive corporate wellness and event management platform built with Full
 │   │   ├── Landing.tsx            # Authentication landing
 │   │   ├── CompanyDashboard.tsx   # Company main page
 │   │   ├── AdminDashboard.tsx     # Admin main page
-│   │   └── EventRegistration.tsx  # Event management
+│   │   ├── EventsManagement.tsx   # Admin event creation
+│   │   ├── AttendeesManagement.tsx # Admin attendee approval
+│   │   └── EventRegistration.tsx  # Public registration form
 │   ├── hooks/
 │   │   └── useAuth.ts             # Authentication hook
 │   └── App.tsx                    # Main application
@@ -83,6 +94,8 @@ A comprehensive corporate wellness and event management platform built with Full
 │   ├── storage.ts                 # Data storage interface
 │   ├── routes.ts                  # API endpoints
 │   ├── replitAuth.ts              # Authentication setup
+│   ├── qrService.ts               # QR code generation
+│   ├── emailService.ts            # Email sending via Resend
 │   └── index.ts                   # Server entry point
 ├── shared/
 │   └── schema.ts                  # Database schema & types
@@ -104,7 +117,9 @@ A comprehensive corporate wellness and event management platform built with Full
 - UUID primary keys with automatic generation
 - Comprehensive tracking of points, calories, team sizes
 - Proof submission workflow with admin approval
-- QR code generation for event check-ins
+- Attendee approval workflow (pending → approved → rejected)
+- QR code generation with signed tokens for event check-ins
+- Email template customization per event
 - Full audit trail with timestamps
 
 ## 🎨 Design System
@@ -192,6 +207,7 @@ const showDevButtons = import.meta.env.VITE_DEV_MODE !== 'false';
 - `USE_DEV_STORAGE` - Controls storage backend (defaults to true in dev)
 - `VITE_DEV_MODE` - Controls frontend dev buttons (defaults to true in dev)
 - `SESSION_SECRET` - Required in production (fails fast if missing)
+- `RESEND_API_KEY` - API key for email service (required for production)
 
 ## 📱 How to Access
 
@@ -245,4 +261,24 @@ npm install <package>    # Add dependencies
 ---
 
 *Last Updated: September 30, 2025*
-*Status: Platform Complete - Ready for Testing and Deployment*
+*Status: Attendee Approval & Email Workflow Complete - Ready for Testing*
+
+## 🆕 Recent Changes (September 30, 2025)
+
+**Attendee Approval & Email Workflow:**
+- ✅ Added approval status to event registrations (pending/approved/rejected)
+- ✅ Implemented QR code generation service with signed tokens
+- ✅ Integrated Resend email service for automated delivery
+- ✅ Created AttendeesManagement admin page with approval dashboard
+- ✅ Added email template customization (subject & body) per event
+- ✅ Simplified registration form: name, phone, email, company (optional)
+- ✅ Added "Manage Attendees" button in EventsManagement page
+- ✅ Fixed routing to allow both authenticated/unauthenticated event registration access
+
+**Email Workflow:**
+1. User registers for event → status: pending
+2. Admin views attendee list and clicks "Approve"
+3. Backend generates unique QR code with signed payload
+4. Email sent automatically via Resend with QR code attachment
+5. Status updated to "approved"
+6. Attendee can use QR code for event check-in
