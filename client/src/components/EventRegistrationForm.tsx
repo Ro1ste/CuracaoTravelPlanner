@@ -7,7 +7,6 @@ import { useToast } from "@/hooks/use-toast";
 
 interface EventRegistrationFormProps {
   eventTitle: string;
-  eventDescription?: string;
   onSubmit: (data: {
     firstName: string;
     lastName: string;
@@ -20,7 +19,6 @@ interface EventRegistrationFormProps {
 
 export function EventRegistrationForm({ 
   eventTitle, 
-  eventDescription, 
   onSubmit, 
   isSubmitting = false 
 }: EventRegistrationFormProps) {
@@ -78,12 +76,10 @@ export function EventRegistrationForm({
   return (
     <Card className="max-w-md mx-auto">
       <CardHeader>
-        <CardTitle data-testid="event-title">{eventTitle}</CardTitle>
-        {eventDescription && (
-          <p className="text-sm text-muted-foreground" data-testid="event-description">
-            {eventDescription}
-          </p>
-        )}
+        <CardTitle data-testid="form-title">Register for Event</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Fill out the form below to register for {eventTitle}
+        </p>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">

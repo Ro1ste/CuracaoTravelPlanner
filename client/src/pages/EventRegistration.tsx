@@ -175,7 +175,6 @@ export function EventRegistration() {
             <div>
               <EventRegistrationForm
                 eventTitle={event.title}
-                eventDescription={event.description ?? ""}
                 onSubmit={handleEventRegistration}
                 isSubmitting={registerMutation.isPending}
               />
