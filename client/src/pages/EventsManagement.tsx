@@ -63,7 +63,10 @@ export function EventsManagement() {
       title: string;
       description: string;
       eventDate: string;
+      youtubeUrl?: string;
       brandingColor: string;
+      emailSubject?: string;
+      emailBodyText?: string;
     }) => {
       const res = await apiRequest("POST", "/api/events", data);
       return await res.json();

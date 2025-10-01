@@ -12,7 +12,7 @@ export default function TaskCardExample() {
         description="Start your day with a 10-minute stretching session to improve flexibility and reduce muscle tension."
         pointsReward={50}
         caloriesBurned={25}
-        videoUrl="sample-video.mp4"
+        youtubeUrl="sample-video.mp4"
         onSubmitProof={() => handleSubmitProof("Morning Stretch Routine")}
       />
       <TaskCard

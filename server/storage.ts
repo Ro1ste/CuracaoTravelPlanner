@@ -420,7 +420,7 @@ export class MemStorage implements IStorage {
       title: taskData.title,
       description: taskData.description ?? null,
       date: taskData.date ?? null,
-      videoUrl: taskData.videoUrl ?? null,
+      youtubeUrl: taskData.youtubeUrl ?? null,
       pointsReward: taskData.pointsReward ?? null,
       caloriesBurned: taskData.caloriesBurned ?? null,
       createdAt: new Date(),

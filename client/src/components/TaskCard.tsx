@@ -6,7 +6,7 @@ import { Play, Award, Flame } from "lucide-react";
 interface TaskCardProps {
   title: string;
   description: string;
-  videoUrl?: string;
+  youtubeUrl?: string;
   pointsReward: number;
   caloriesBurned: number;
   onSubmitProof: () => void;
@@ -16,7 +16,7 @@ interface TaskCardProps {
 export function TaskCard({ 
   title, 
   description, 
-  videoUrl, 
+  youtubeUrl, 
   pointsReward, 
   caloriesBurned, 
   onSubmitProof,
@@ -46,7 +46,7 @@ export function TaskCard({
           {description}
         </p>
         
-        {videoUrl && (
+        {youtubeUrl && (
           <div className="relative bg-muted rounded-lg aspect-video flex items-center justify-center">
             <Button variant="ghost" size="icon" className="h-12 w-12">
               <Play className="h-6 w-6" />

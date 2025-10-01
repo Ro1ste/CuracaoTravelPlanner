@@ -96,7 +96,7 @@ async function seedDevData() {
       description: "Take a 30-minute walk to start your day",
       pointsReward: 50,
       caloriesBurned: 100,
-      videoUrl: null,
+      youtubeUrl: null,
       date: new Date(),
     });
     
@@ -105,7 +105,7 @@ async function seedDevData() {
       description: "5-minute stretching routine at your desk",
       pointsReward: 25,
       caloriesBurned: 30,
-      videoUrl: null,
+      youtubeUrl: null,
       date: new Date(),
     });
 
@@ -114,7 +114,7 @@ async function seedDevData() {
       description: "Participate in team fitness activities",
       pointsReward: 100,
       caloriesBurned: 200,
-      videoUrl: null,
+      youtubeUrl: null,
       date: new Date(),
     });
 
@@ -127,6 +127,7 @@ async function seedDevData() {
       description: "Join us for an inspiring day of wellness workshops, networking, and team building activities. Experience keynote speakers, interactive sessions, and connect with wellness professionals.",
       eventDate: futureDate,
       brandingColor: "#ff6600",
+      youtubeUrl: undefined,
     });
     
     console.log("✅ Dev seed data: Created sample tasks and event");

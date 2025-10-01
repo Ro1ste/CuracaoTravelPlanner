@@ -138,7 +138,7 @@ export function CompanyDashboard() {
                     description={task.description || ""}
                     pointsReward={task.pointsReward || 0}
                     caloriesBurned={task.caloriesBurned || 0}
-                    videoUrl={task.videoUrl || undefined}
+                    youtubeUrl={task.youtubeUrl || undefined}
                     onSubmitProof={() => handleSubmitProof(task.id, task.title)}
                   />
                 ))}

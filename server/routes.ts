@@ -627,14 +627,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ? { subject: event.emailSubject, text: event.emailBodyText }
           : EmailService.getDefaultTemplate(event.title, `${registration.firstName} ${registration.lastName}`);
 
-        await EmailService.sendEmail({
-          to: registration.email,
-          subject: emailTemplate.subject,
-          text: emailTemplate.text,
-          qrCodeDataUrl: qrCodeDataUrl,
-        });
+        // Try to send email, but don't fail the approval if it doesn't work (e.g., in dev mode)
+        let emailSent = false;
+        try {
+          await EmailService.sendEmail({
+            to: registration.email,
+            subject: emailTemplate.subject,
+            text: emailTemplate.text,
+            qrCodeDataUrl: qrCodeDataUrl,
+          });
+          emailSent = true;
+          console.log(`Email sent successfully to ${registration.email}`);
+        } catch (emailError: any) {
+          console.warn(`Failed to send email to ${registration.email}:`, emailError.message);
+          console.warn('Approval succeeded, but email was not sent. This is expected in dev mode with Resend test restrictions.');
+        }
 
-        res.json({ ...updatedRegistration, emailSent: true });
+        res.json({ ...updatedRegistration, emailSent });
       } else {
         const updatedRegistration = await storage.updateRegistrationStatus(req.params.id, 'rejected');
         res.json(updatedRegistration);

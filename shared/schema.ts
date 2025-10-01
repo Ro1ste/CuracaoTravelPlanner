@@ -59,7 +59,7 @@ export const tasks = pgTable("tasks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: varchar("title").notNull(),
   description: text("description"),
-  videoUrl: varchar("video_url"),
+  youtubeUrl: varchar("youtube_url"),
   pointsReward: integer("points_reward").default(10),
   caloriesBurned: integer("calories_burned").default(50),
   date: timestamp("date").defaultNow(),
@@ -153,7 +153,7 @@ export const insertCompanySchema = createInsertSchema(companies).pick({
 export const insertTaskSchema = createInsertSchema(tasks).pick({
   title: true,
   description: true,
-  videoUrl: true,
+  youtubeUrl: true,
   pointsReward: true,
   caloriesBurned: true,
 });

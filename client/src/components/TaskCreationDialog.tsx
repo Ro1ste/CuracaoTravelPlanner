@@ -41,7 +41,7 @@ export function TaskCreationDialog({
     defaultValues: {
       title: "",
       description: "",
-      videoUrl: "",
+      youtubeUrl: "",
       pointsReward: 50,
       caloriesBurned: 50,
     },
@@ -170,20 +170,20 @@ export function TaskCreationDialog({
 
             <FormField
               control={form.control}
-              name="videoUrl"
+              name="youtubeUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Video URL (Optional)</FormLabel>
+                  <FormLabel>YouTube URL (Optional)</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="https://example.com/video.mp4"
+                      placeholder="https://www.youtube.com/watch?v=..."
                       {...field}
                       value={field.value || ""}
-                      data-testid="input-video-url"
+                      data-testid="input-youtube-url"
                     />
                   </FormControl>
                   <FormDescription>
-                    Link to an instructional video
+                    Link to a YouTube instructional video
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
