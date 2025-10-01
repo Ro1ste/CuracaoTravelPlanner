@@ -56,6 +56,17 @@ The platform is built with a Fullstack JavaScript stack, utilizing React with Ty
 
 ## Recent Changes (October 1, 2025)
 
+**Email Domain Update (October 1, 2025):**
+- ✅ Updated email sender address from info@curacaointernationalsportsweek.com to info@bepartofthemovement.com
+- ✅ All automated emails (QR codes, event notifications, admin welcome emails) now send from bepartofthemovement.com
+- ⚠️ Requires domain verification in Resend dashboard with SPF/DKIM/DMARC records
+
+**Admin Login Configuration (October 1, 2025):**
+- ✅ Created production admin account: admin@curacaointernationalsportsweek.com (password: Admin2024!)
+- ✅ Admin account stored in production database with bcrypt hashing (10 rounds)
+- ℹ️ Dev environment uses MemStorage - admin account only works on published site
+- ℹ️ For local testing, use dev login feature: admin@dev.local (no password required)
+
 **Administrator Management System:**
 - ✅ Created Administrators Management page at `/administrators` for admin users
 - ✅ Implemented API endpoints for listing and creating admin accounts
