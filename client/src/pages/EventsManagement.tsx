@@ -36,6 +36,10 @@ export function EventsManagement() {
       (date) => new Date(date) > new Date(),
       "Event date must be in the future"
     ),
+    youtubeUrl: z.string().optional().refine(
+      (url) => !url || url.includes('youtube.com') || url.includes('youtu.be'),
+      "Please enter a valid YouTube URL"
+    ),
     brandingColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format (use hex color like #ff6600)"),
     emailSubject: z.string().optional(),
     emailBodyText: z.string().optional()
@@ -47,6 +51,7 @@ export function EventsManagement() {
       title: "",
       description: "",
       eventDate: "",
+      youtubeUrl: "",
       brandingColor: "#ff6600",
       emailSubject: "",
       emailBodyText: ""
@@ -167,6 +172,24 @@ export function EventsManagement() {
                           placeholder="Describe your event..."
                           rows={4}
                           data-testid="input-event-description"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="youtubeUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>YouTube Video URL (Optional)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          placeholder="https://www.youtube.com/watch?v=..."
+                          data-testid="input-event-youtube-url"
                         />
                       </FormControl>
                       <FormMessage />
