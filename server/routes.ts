@@ -385,6 +385,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========== ADMIN ROUTES ==========
+  // Get all companies (admin only)
+  app.get('/api/admin/companies', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const companies = await storage.getAllCompanies();
+      
+      // Get user info for each company
+      const companiesWithUsers = await Promise.all(
+        companies.map(async (company) => {
+          const user = company.userId ? await storage.getUser(company.userId) : null;
+          return {
+            ...company,
+            user: user ? {
+              id: user.id,
+              email: user.email,
+              firstName: user.firstName,
+              lastName: user.lastName,
+            } : null
+          };
+        })
+      );
+      
+      res.json(companiesWithUsers);
+    } catch (error) {
+      console.error("Error fetching companies:", error);
+      res.status(500).json({ message: "Failed to fetch companies" });
+    }
+  });
+
+  // Update company password (admin only)
+  app.patch('/api/admin/companies/:id/password', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { password } = req.body;
+      
+      if (!password || password.length < 8) {
+        return res.status(400).json({ message: "Password must be at least 8 characters" });
+      }
+
+      // Get company
+      const company = await storage.getCompany(req.params.id);
+      if (!company || !company.userId) {
+        return res.status(404).json({ message: "Company not found" });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Update user password
+      const updatedUser = await storage.updateUserPassword(company.userId, hashedPassword);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({ success: true, message: "Password updated successfully" });
+    } catch (error: any) {
+      console.error("Error updating password:", error);
+      res.status(500).json({ message: error.message || "Failed to update password" });
+    }
+  });
+
   // ========== OBJECT STORAGE ROUTES ==========
   // Referenced from blueprint:javascript_object_storage
   // Get upload URL for proof content
