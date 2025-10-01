@@ -24,6 +24,21 @@ export function AppSidebar({ userType }: AppSidebarProps) {
       url: "/",
       icon: Home,
     },
+    {
+      title: "Leaderboard",
+      url: "/leaderboard",
+      icon: Trophy,
+    },
+    {
+      title: "Events",
+      url: "/events",
+      icon: Calendar,
+    },
+    {
+      title: "Settings",
+      url: "/settings",
+      icon: Settings,
+    },
   ];
 
   const adminMenuItems = [

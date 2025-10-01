@@ -13,6 +13,9 @@ import { Landing } from "@/pages/Landing";
 import CompanySignup from "@/pages/CompanySignup";
 import CompanyLogin from "@/pages/CompanyLogin";
 import { CompanyDashboard } from "@/pages/CompanyDashboard";
+import { CompanyLeaderboard } from "@/pages/CompanyLeaderboard";
+import { CompanyEvents } from "@/pages/CompanyEvents";
+import { CompanySettings } from "@/pages/CompanySettings";
 import { AdminDashboard } from "@/pages/AdminDashboard";
 import { EventRegistration } from "@/pages/EventRegistration";
 import { EventsManagement } from "@/pages/EventsManagement";
@@ -61,6 +64,9 @@ function Router() {
       ) : (
         <>
           <Route path="/" component={CompanyDashboard} />
+          <Route path="/leaderboard" component={CompanyLeaderboard} />
+          <Route path="/events" component={CompanyEvents} />
+          <Route path="/settings" component={CompanySettings} />
         </>
       )}
       <Route component={NotFound} />
