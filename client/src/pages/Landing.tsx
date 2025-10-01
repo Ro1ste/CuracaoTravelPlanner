@@ -5,16 +5,18 @@ import { Award, Users, Calendar, BarChart3, ArrowRight, CheckCircle } from "luci
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { DemoLoginForm } from "@/components/DemoLoginForm";
 import fddkLogo from "@assets/FDDK_1759241722627.png";
+import { useLocation } from "wouter";
 
 export function Landing() {
+  const [_, setLocation] = useLocation();
   const isDevMode = import.meta.env.VITE_DEV_MODE !== 'false';
   
-  const handleLogin = () => {
-    window.location.href = "/api/login";
+  const handleSignup = () => {
+    setLocation("/signup");
   };
 
-  const handleDevLogin = (role: 'admin' | 'company') => {
-    window.location.href = `/api/dev/login?role=${role}`;
+  const handleLogin = () => {
+    setLocation("/login");
   };
 
   const handleLearnMore = () => {
@@ -96,29 +98,32 @@ export function Landing() {
               interactive dashboards, and manage events with seamless QR code integration.
             </p>
             
-            <div className="flex justify-center">
-              {isDevMode ? (
-                <DemoLoginForm />
-              ) : (
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button 
-                    size="lg" 
-                    onClick={handleLogin}
-                    className="text-lg px-8 py-6"
-                    data-testid="button-login"
-                  >
-                    Get Started Today
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                  <Button 
-                    size="lg" 
-                    variant="outline"
-                    onClick={handleLearnMore}
-                    className="text-lg px-8 py-6 bg-background/90 backdrop-blur"
-                    data-testid="button-learn-more"
-                  >
-                    Learn More
-                  </Button>
+            <div className="flex flex-col items-center gap-6">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button 
+                  size="lg" 
+                  onClick={handleSignup}
+                  className="text-lg px-8 py-6"
+                  data-testid="button-signup"
+                >
+                  Get Started
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  onClick={handleLogin}
+                  className="text-lg px-8 py-6 bg-background/90 backdrop-blur"
+                  data-testid="button-login"
+                >
+                  Sign In
+                </Button>
+              </div>
+              
+              {isDevMode && (
+                <div className="pt-4 border-t w-full max-w-md">
+                  <p className="text-sm text-muted-foreground text-center mb-3">Dev Mode - Quick Login</p>
+                  <DemoLoginForm />
                 </div>
               )}
             </div>
