@@ -1,7 +1,7 @@
 # Corporate Wellness & Event Management Platform
 
 ## Overview
-This project is a comprehensive corporate wellness and event management platform designed to facilitate employee well-being programs and streamline event coordination. It features email/password authentication for companies, task management with proof uploads, leaderboards, event registration with QR-based check-ins, and file upload capabilities. The platform aims to provide a robust solution for businesses to manage wellness initiatives and events efficiently, offering a modern and intuitive user experience.
+This project is a comprehensive corporate wellness and event management platform designed to facilitate employee well-being programs and streamline event coordination. It features email/password authentication for companies, task management with proof uploads, leaderboards, event registration with QR-based check-ins, administrator management with email notifications, and file upload capabilities. The platform aims to provide a robust solution for businesses to manage wellness initiatives and events efficiently, offering a modern and intuitive user experience.
 
 ## User Preferences
 - **Design:** Material Design with professional corporate aesthetic
@@ -29,6 +29,7 @@ The platform is built with a Fullstack JavaScript stack, utilizing React with Ty
     - Company leaderboards and analytics.
     - Event registration with shareable links and QR check-ins.
     - Admin dashboard for company oversight, attendee approval workflow, and event management.
+    - Administrator management - create admin accounts with automated email notifications.
     - Automated QR code email delivery and customizable email templates per event.
     - File upload capabilities (30MB limit).
     - Role-based routing and protected components.
@@ -45,10 +46,43 @@ The platform is built with a Fullstack JavaScript stack, utilizing React with Ty
 ## External Dependencies
 - **Replit Auth:** For user authentication integration.
 - **PostgreSQL:** Primary database for persistent storage.
-- **Resend:** Email service for automated email delivery, including QR codes and event notifications.
+- **Resend:** Email service for automated email delivery, including QR codes, event notifications, and admin welcome emails.
 - **Passport.js:** For session-based authentication.
 - **connect-pg-simple:** For PostgreSQL-backed session storage.
 - **bcrypt:** For password hashing.
 - **TanStack Query:** For data fetching, caching, and state management on the client side.
 - **Shadcn/ui & Tailwind CSS:** For UI components and styling.
 - **Framer Motion:** For animations.
+
+## Recent Changes (October 1, 2025)
+
+**Administrator Management System:**
+- ✅ Created Administrators Management page at `/administrators` for admin users
+- ✅ Implemented API endpoints for listing and creating admin accounts
+- ✅ Added secure admin creation with bcrypt password hashing (10 rounds)
+- ✅ Built email notification system for new administrators
+- ✅ Welcome emails sent with login credentials to new admins
+- ✅ Form validation with double-entry password confirmation (min 8 characters)
+- ✅ Added "Administrators" link to admin sidebar navigation with ShieldCheck icon
+- ✅ Admin table displays name, email, and creation date
+- ✅ Graceful email failure handling - admin creation succeeds even if email fails
+- ✅ Security: Password fields filtered from API responses
+
+**Administrator Creation Workflow:**
+1. Admin clicks "Administrators" in sidebar
+2. Clicks "Create Administrator" button
+3. Fills form with first name, last name, email, and temporary password
+4. System validates email uniqueness and password requirements
+5. Password is hashed with bcrypt (10 rounds)
+6. Admin user is created in database with isAdmin=true
+7. Welcome email is sent with login credentials
+8. Admin appears in administrators table
+9. New admin can log in with provided credentials
+
+**Technical Implementation:**
+- Storage methods: `getAllAdmins()` and `createAdmin()` in both DatabaseStorage and MemStorage
+- API endpoints: GET `/api/admin/admins` and POST `/api/admin/admins` (both admin-only)
+- Email service: `sendAdminWelcomeEmail()` method with HTML/text templates
+- Frontend: React Query for data fetching, Zod for form validation, shadcn/ui components
+- Security: isAuthenticated + isAdmin middleware, password field sanitization
+- Dev mode compatible: Works with in-memory storage, tolerates email failures
