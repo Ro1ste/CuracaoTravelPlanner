@@ -5,6 +5,7 @@ import { Award, Users, Calendar, BarChart3, ArrowRight, CheckCircle } from "luci
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { DemoLoginForm } from "@/components/DemoLoginForm";
 import fddkLogo from "@assets/FDDK_1759241722627.png";
+import fitnessBackground from "@assets/stock_images/man_and_woman_doing__cb8dae4c.jpg";
 import { useLocation } from "wouter";
 
 export function Landing() {
@@ -76,9 +77,14 @@ export function Landing() {
       </nav>
 
       {/* Hero Section */}
-      <div className="relative">
+      <div className="relative overflow-hidden">
+        {/* Background watermark image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-15 dark:opacity-10"
+          style={{ backgroundImage: `url(${fitnessBackground})` }}
+        />
         {/* Dark wash overlay for better text contrast */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-black/20"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-background/60 via-background/40 to-background/60"></div>
         
         <div className="relative container mx-auto px-6 py-24">
           <div className="max-w-4xl mx-auto text-center space-y-8">
