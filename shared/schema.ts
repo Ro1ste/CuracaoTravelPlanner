@@ -84,6 +84,7 @@ export const events = pgTable("events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: varchar("title").notNull(),
   description: text("description"),
+  youtubeUrl: varchar("youtube_url"),
   eventDate: timestamp("event_date").notNull(),
   brandingColor: varchar("branding_color").default("#211100"),
   isActive: boolean("is_active").default(true),
@@ -167,8 +168,13 @@ export const insertTaskProofSchema = createInsertSchema(taskProofs).pick({
 export const insertEventSchema = createInsertSchema(events).pick({
   title: true,
   description: true,
+  youtubeUrl: true,
   eventDate: true,
   brandingColor: true,
+  emailSubject: true,
+  emailBodyText: true,
+}).extend({
+  youtubeUrl: z.string().url("Must be a valid URL").optional().or(z.literal('')),
 });
 
 export const insertEventRegistrationSchema = createInsertSchema(eventRegistrations).pick({
