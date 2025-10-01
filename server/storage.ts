@@ -27,6 +27,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateUserPassword(id: string, hashedPassword: string): Promise<User | undefined>;
   
   // Company operations
   getCompany(id: string): Promise<Company | undefined>;
@@ -90,6 +91,18 @@ export class DatabaseStorage implements IStorage {
           updatedAt: new Date(),
         },
       })
+      .returning();
+    return user;
+  }
+
+  async updateUserPassword(id: string, hashedPassword: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        password: hashedPassword,
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, id))
       .returning();
     return user;
   }
@@ -315,6 +328,19 @@ export class MemStorage implements IStorage {
     return user;
   }
 
+  async updateUserPassword(id: string, hashedPassword: string): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updated: User = {
+      ...user,
+      password: hashedPassword,
+      updatedAt: new Date(),
+    };
+    this.users.set(id, updated);
+    return updated;
+  }
+
   // Company operations
   async getCompany(id: string): Promise<Company | undefined> {
     return this.companies.get(id);
@@ -527,11 +553,12 @@ export class MemStorage implements IStorage {
       id,
       title: eventData.title,
       description: eventData.description ?? null,
+      youtubeUrl: eventData.youtubeUrl ?? null,
       eventDate: eventData.eventDate,
       brandingColor: eventData.brandingColor ?? "#211100",
       isActive: true,
-      emailSubject: null,
-      emailBodyText: null,
+      emailSubject: eventData.emailSubject ?? null,
+      emailBodyText: eventData.emailBodyText ?? null,
       createdAt: new Date(),
     };
     this.events.set(id, event);
