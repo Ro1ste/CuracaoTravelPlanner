@@ -18,7 +18,6 @@ import {
   events,
   eventRegistrations
 } from "@shared/schema";
-import { db } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
 
 // Interface for storage operations
@@ -71,18 +70,31 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  private _db: any = null;
+  
+  private async getDb() {
+    if (!this._db) {
+      const { db } = await import("./db");
+      this._db = db;
+    }
+    return this._db;
+  }
+
   // User operations
   async getUser(id: string): Promise<User | undefined> {
+    const db = await this.getDb();
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
+    const db = await this.getDb();
     const [user] = await db.select().from(users).where(eq(users.email, email));
     return user;
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
+    const db = await this.getDb();
     const [user] = await db
       .insert(users)
       .values(userData)
@@ -98,6 +110,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserPassword(id: string, hashedPassword: string): Promise<User | undefined> {
+    const db = await this.getDb();
     const [user] = await db
       .update(users)
       .set({ 
@@ -110,10 +123,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllAdmins(): Promise<User[]> {
+    const db = await this.getDb();
     return await db.select().from(users).where(eq(users.isAdmin, true));
   }
 
   async createAdmin(email: string, firstName: string, lastName: string, hashedPassword: string): Promise<User> {
+    const db = await this.getDb();
     const [user] = await db
       .insert(users)
       .values({
@@ -129,25 +144,30 @@ export class DatabaseStorage implements IStorage {
 
   // Company operations
   async getCompany(id: string): Promise<Company | undefined> {
+    const db = await this.getDb();
     const [company] = await db.select().from(companies).where(eq(companies.id, id));
     return company;
   }
 
   async getCompanyByUserId(userId: string): Promise<Company | undefined> {
+    const db = await this.getDb();
     const [company] = await db.select().from(companies).where(eq(companies.userId, userId));
     return company;
   }
 
   async getAllCompanies(): Promise<Company[]> {
+    const db = await this.getDb();
     return await db.select().from(companies).orderBy(desc(companies.totalPoints));
   }
 
   async createCompany(companyData: UpsertCompany): Promise<Company> {
+    const db = await this.getDb();
     const [company] = await db.insert(companies).values(companyData).returning();
     return company;
   }
 
   async updateCompany(id: string, updates: Partial<UpsertCompany>): Promise<Company | undefined> {
+    const db = await this.getDb();
     const [company] = await db
       .update(companies)
       .set({ ...updates, updatedAt: new Date() })
@@ -157,6 +177,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateCompanyPoints(id: string, pointsToAdd: number): Promise<Company | undefined> {
+    const db = await this.getDb();
     const [company] = await db
       .update(companies)
       .set({ 
@@ -170,20 +191,24 @@ export class DatabaseStorage implements IStorage {
 
   // Task operations
   async getAllTasks(): Promise<Task[]> {
+    const db = await this.getDb();
     return await db.select().from(tasks).orderBy(desc(tasks.createdAt));
   }
 
   async getTaskById(id: string): Promise<Task | undefined> {
+    const db = await this.getDb();
     const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
     return task;
   }
 
   async createTask(taskData: UpsertTask): Promise<Task> {
+    const db = await this.getDb();
     const [task] = await db.insert(tasks).values(taskData).returning();
     return task;
   }
 
   async updateTask(id: string, updates: Partial<UpsertTask>): Promise<Task | undefined> {
+    const db = await this.getDb();
     const [task] = await db
       .update(tasks)
       .set(updates)
@@ -193,28 +218,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteTask(id: string): Promise<void> {
+    const db = await this.getDb();
     await db.delete(tasks).where(eq(tasks.id, id));
   }
 
   // Proof operations
   async getProofsByCompany(companyId: string): Promise<TaskProof[]> {
+    const db = await this.getDb();
     return await db.select().from(taskProofs).where(eq(taskProofs.companyId, companyId));
   }
 
   async getProofById(id: string): Promise<TaskProof | undefined> {
+    const db = await this.getDb();
     const [proof] = await db.select().from(taskProofs).where(eq(taskProofs.id, id));
     return proof;
   }
 
   async getPendingProofs(): Promise<TaskProof[]> {
+    const db = await this.getDb();
     return await db.select().from(taskProofs).where(eq(taskProofs.status, 'pending'));
   }
 
   async getAllProofs(): Promise<TaskProof[]> {
+    const db = await this.getDb();
     return await db.select().from(taskProofs).orderBy(desc(taskProofs.submittedAt));
   }
 
   async createProof(proofData: UpsertTaskProof): Promise<TaskProof> {
+    const db = await this.getDb();
     const [proof] = await db.insert(taskProofs).values(proofData).returning();
     return proof;
   }
@@ -224,6 +255,7 @@ export class DatabaseStorage implements IStorage {
     status: 'approved' | 'rejected', 
     adminNotes?: string
   ): Promise<TaskProof | undefined> {
+    const db = await this.getDb();
     const [proof] = await db
       .update(taskProofs)
       .set({ 
@@ -237,6 +269,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProofContent(id: string, contentUrl: string): Promise<TaskProof | undefined> {
+    const db = await this.getDb();
     const [proof] = await db
       .update(taskProofs)
       .set({ contentUrl })
@@ -247,24 +280,29 @@ export class DatabaseStorage implements IStorage {
 
   // Event operations
   async getAllEvents(): Promise<Event[]> {
+    const db = await this.getDb();
     return await db.select().from(events).orderBy(desc(events.eventDate));
   }
 
   async getEventById(id: string): Promise<Event | undefined> {
+    const db = await this.getDb();
     const [event] = await db.select().from(events).where(eq(events.id, id));
     return event;
   }
 
   async getActiveEvents(): Promise<Event[]> {
+    const db = await this.getDb();
     return await db.select().from(events).where(eq(events.isActive, true)).orderBy(desc(events.eventDate));
   }
 
   async createEvent(eventData: InsertEvent): Promise<Event> {
+    const db = await this.getDb();
     const [event] = await db.insert(events).values(eventData).returning();
     return event;
   }
 
   async updateEvent(id: string, updates: Partial<InsertEvent>): Promise<Event | undefined> {
+    const db = await this.getDb();
     const [event] = await db
       .update(events)
       .set(updates)
@@ -275,20 +313,24 @@ export class DatabaseStorage implements IStorage {
 
   // Event registration operations
   async getEventRegistrations(eventId: string): Promise<EventRegistration[]> {
+    const db = await this.getDb();
     return await db.select().from(eventRegistrations).where(eq(eventRegistrations.eventId, eventId));
   }
 
   async getEventRegistrationById(id: string): Promise<EventRegistration | undefined> {
+    const db = await this.getDb();
     const [registration] = await db.select().from(eventRegistrations).where(eq(eventRegistrations.id, id));
     return registration;
   }
 
   async createEventRegistration(registrationData: InsertEventRegistration): Promise<EventRegistration> {
+    const db = await this.getDb();
     const [registration] = await db.insert(eventRegistrations).values(registrationData).returning();
     return registration;
   }
 
   async updateRegistrationStatus(id: string, status: 'approved' | 'rejected'): Promise<EventRegistration | undefined> {
+    const db = await this.getDb();
     const [registration] = await db
       .update(eventRegistrations)
       .set({ 
@@ -301,6 +343,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async checkInRegistration(id: string): Promise<EventRegistration | undefined> {
+    const db = await this.getDb();
     const [registration] = await db
       .update(eventRegistrations)
       .set({ 
