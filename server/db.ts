@@ -1,12 +1,7 @@
-
-import { config } from "dotenv";
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
-
-// Load environment variables from .env file
-config();
 
 neonConfig.webSocketConstructor = ws;
 
