@@ -10,7 +10,7 @@ import { useLocation } from "wouter";
 
 export function Landing() {
   const [_, setLocation] = useLocation();
-  const isDevMode = import.meta.env.VITE_DEV_MODE !== 'false';
+  const isDevMode = import.meta.env.MODE === 'development';
   
   const handleSignup = () => {
     setLocation("/signup");

@@ -6,7 +6,7 @@ import { Building2, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 
 import { companyLoginSchema, type CompanyLogin } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
@@ -38,12 +38,17 @@ export default function CompanyLogin() {
     mutationFn: async (data: CompanyLogin) => {
       return await apiRequest("POST", "/api/auth/login", data);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Invalidate user query to refetch with new session
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      
       toast({
         title: "Welcome back!",
         description: "You have successfully logged in.",
       });
-      window.location.href = "/";
+      
+      // Navigate to home - app will auto-route to appropriate dashboard
+      setLocation("/");
     },
     onError: (error: Error) => {
       toast({
