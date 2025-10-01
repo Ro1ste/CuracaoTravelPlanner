@@ -10,6 +10,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { Landing } from "@/pages/Landing";
+import CompanySignup from "@/pages/CompanySignup";
+import CompanyLogin from "@/pages/CompanyLogin";
 import { CompanyDashboard } from "@/pages/CompanyDashboard";
 import { AdminDashboard } from "@/pages/AdminDashboard";
 import { EventRegistration } from "@/pages/EventRegistration";
@@ -32,6 +34,8 @@ function Router() {
     return (
       <Switch>
         <Route path="/" component={Landing} />
+        <Route path="/signup" component={CompanySignup} />
+        <Route path="/login" component={CompanyLogin} />
         <Route path="/event-registration" component={EventRegistration} />
         <Route path="/event-registration/:eventId" component={EventRegistration} />
         <Route component={Landing} />
