@@ -28,6 +28,8 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserPassword(id: string, hashedPassword: string): Promise<User | undefined>;
+  getAllAdmins(): Promise<User[]>;
+  createAdmin(email: string, firstName: string, lastName: string, hashedPassword: string): Promise<User>;
   
   // Company operations
   getCompany(id: string): Promise<Company | undefined>;
@@ -103,6 +105,24 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date() 
       })
       .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async getAllAdmins(): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.isAdmin, true));
+  }
+
+  async createAdmin(email: string, firstName: string, lastName: string, hashedPassword: string): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values({
+        email,
+        firstName,
+        lastName,
+        password: hashedPassword,
+        isAdmin: true,
+      })
       .returning();
     return user;
   }
@@ -339,6 +359,27 @@ export class MemStorage implements IStorage {
     };
     this.users.set(id, updated);
     return updated;
+  }
+
+  async getAllAdmins(): Promise<User[]> {
+    return Array.from(this.users.values()).filter(u => u.isAdmin === true);
+  }
+
+  async createAdmin(email: string, firstName: string, lastName: string, hashedPassword: string): Promise<User> {
+    const id = `admin-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const user: User = {
+      id,
+      email,
+      firstName,
+      lastName,
+      password: hashedPassword,
+      isAdmin: true,
+      profileImageUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.users.set(id, user);
+    return user;
   }
 
   // Company operations

@@ -446,6 +446,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all administrators (admin only)
+  app.get('/api/admin/admins', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const admins = await storage.getAllAdmins();
+      // Remove sensitive fields before sending response
+      const sanitizedAdmins = admins.map(admin => ({
+        id: admin.id,
+        email: admin.email,
+        firstName: admin.firstName,
+        lastName: admin.lastName,
+        createdAt: admin.createdAt,
+        updatedAt: admin.updatedAt,
+      }));
+      res.json(sanitizedAdmins);
+    } catch (error) {
+      console.error("Error fetching admins:", error);
+      res.status(500).json({ message: "Failed to fetch administrators" });
+    }
+  });
+
+  // Create new administrator (admin only)
+  app.post('/api/admin/admins', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { email, firstName, lastName, password } = req.body;
+      
+      // Validation
+      if (!email || !firstName || !lastName || !password) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+      
+      if (password.length < 8) {
+        return res.status(400).json({ message: "Password must be at least 8 characters" });
+      }
+
+      // Check if email already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create admin user
+      const admin = await storage.createAdmin(email, firstName, lastName, hashedPassword);
+
+      // Send welcome email
+      try {
+        const emailService = new EmailService();
+        await emailService.sendAdminWelcomeEmail(
+          email,
+          `${firstName} ${lastName}`,
+          email,
+          password
+        );
+      } catch (emailError) {
+        console.warn("Failed to send welcome email:", emailError);
+        // Continue even if email fails
+      }
+
+      res.status(201).json({ 
+        success: true, 
+        message: "Administrator created successfully",
+        admin: {
+          id: admin.id,
+          email: admin.email,
+          firstName: admin.firstName,
+          lastName: admin.lastName,
+        }
+      });
+    } catch (error: any) {
+      console.error("Error creating admin:", error);
+      res.status(500).json({ message: error.message || "Failed to create administrator" });
+    }
+  });
+
   // ========== OBJECT STORAGE ROUTES ==========
   // Referenced from blueprint:javascript_object_storage
   // Get upload URL for proof content
