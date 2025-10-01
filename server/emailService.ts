@@ -8,7 +8,7 @@ export interface EmailOptions {
 
 export class EmailService {
   private static RESEND_API_KEY = process.env.RESEND_API_KEY;
-  private static FROM_EMAIL = 'onboarding@resend.dev';
+  private static FROM_EMAIL = 'info@curacaointernationalsportsweek.com';
 
   static async sendEmail(options: EmailOptions): Promise<void> {
     if (!this.RESEND_API_KEY) {

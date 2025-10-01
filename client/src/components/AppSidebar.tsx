@@ -24,21 +24,6 @@ export function AppSidebar({ userType }: AppSidebarProps) {
       url: "/",
       icon: Home,
     },
-    {
-      title: "Tasks",
-      url: "/",
-      icon: CheckSquare,
-    },
-    {
-      title: "Leaderboard",
-      url: "/",
-      icon: Trophy,
-    },
-    {
-      title: "Profile",
-      url: "/",
-      icon: Settings,
-    },
   ];
 
   const adminMenuItems = [
