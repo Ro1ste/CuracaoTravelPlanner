@@ -86,3 +86,33 @@ The platform is built with a Fullstack JavaScript stack, utilizing React with Ty
 - Frontend: React Query for data fetching, Zod for form validation, shadcn/ui components
 - Security: isAuthenticated + isAdmin middleware, password field sanitization
 - Dev mode compatible: Works with in-memory storage, tolerates email failures
+
+**Database Setup (October 1, 2025):**
+- ✅ Database schema synchronized with `npm run db:push`
+- ✅ Column renamed: tasks.video_url → tasks.youtube_url
+- ✅ All tables created: users, companies, tasks, task_proofs, events, event_registrations, sessions
+- ✅ Production-ready database configuration
+
+## Deployment Notes
+
+**Environment Modes:**
+- **Development** (`NODE_ENV=development`): Uses MemStorage (in-memory), dev seed data, Vite dev server
+- **Production** (`NODE_ENV=production`): Uses DatabaseStorage (PostgreSQL), serves pre-built static assets
+
+**Required Environment Variables for Production:**
+- `DATABASE_URL` - PostgreSQL connection string (auto-provided by Replit)
+- `SESSION_SECRET` - Secret key for session encryption (auto-provided by Replit)
+- `RESEND_API_KEY` - Email service API key (auto-provided by Replit)
+- `PUBLIC_OBJECT_SEARCH_PATHS` - Object storage public paths (auto-provided by Replit)
+- `PRIVATE_OBJECT_DIR` - Object storage private directory (auto-provided by Replit)
+
+**Deployment Process:**
+1. Build: `npm run build` - Compiles client to `dist/public` and server to `dist/index.js`
+2. Run: `npm run start` - Starts production server with `node dist/index.js`
+3. Database: Ensure `npm run db:push` has been run to create all tables
+
+**Production Checklist:**
+- ✅ Database tables created via `npm run db:push`
+- ✅ All environment variables configured in deployment settings
+- ✅ Build completed successfully (`dist/public` contains static assets)
+- ✅ Production server serves from `dist/public` directory
