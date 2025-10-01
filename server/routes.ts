@@ -133,8 +133,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if user has a company profile
       const company = await storage.getCompanyByUserId(userId);
       
+      // Remove password from response
+      const { password, ...userWithoutPassword } = user;
+      
       res.json({
-        ...user,
+        ...userWithoutPassword,
         hasCompany: !!company,
         companyId: company?.id
       });

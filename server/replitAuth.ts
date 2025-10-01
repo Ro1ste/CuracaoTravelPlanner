@@ -9,10 +9,10 @@ import connectPg from "connect-pg-simple";
 import MemoryStore from "memorystore";
 import { storage } from "./storage";
 
-// Use dev mode by default in development unless explicitly disabled
-const DEV_MODE = process.env.NODE_ENV === 'development' && process.env.USE_DEV_STORAGE !== 'false';
+// Use in-memory storage only when explicitly enabled for testing
+const USE_MEM_STORAGE = process.env.USE_DEV_STORAGE === 'true';
 
-if (!DEV_MODE && !process.env.REPLIT_DOMAINS) {
+if (!USE_MEM_STORAGE && !process.env.REPLIT_DOMAINS && process.env.NODE_ENV === 'production') {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
 }
 
@@ -29,13 +29,13 @@ const getOidcConfig = memoize(
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   
-  // Require SESSION_SECRET in production
-  if (!DEV_MODE && !process.env.SESSION_SECRET) {
-    throw new Error("SESSION_SECRET environment variable is required in production");
+  // Require SESSION_SECRET when not using memory storage
+  if (!USE_MEM_STORAGE && !process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET environment variable is required");
   }
   
   let sessionStore;
-  if (DEV_MODE) {
+  if (USE_MEM_STORAGE) {
     const MemStore = MemoryStore(session);
     sessionStore = new MemStore({
       checkPeriod: sessionTtl,
@@ -57,7 +57,7 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: !DEV_MODE,
+      secure: process.env.NODE_ENV === 'production',
       maxAge: sessionTtl,
     },
   });
@@ -140,8 +140,8 @@ export async function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  if (DEV_MODE) {
-    // Seed initial dev data
+  if (USE_MEM_STORAGE) {
+    // Seed initial dev data for testing mode
     await seedDevData();
     
     // Dev mode - simple role-based login
@@ -319,8 +319,8 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
-  // Dev mode - simple authentication check
-  if (DEV_MODE) {
+  // Testing mode - simple authentication check
+  if (USE_MEM_STORAGE) {
     if (user?.claims?.sub) {
       return next();
     }
