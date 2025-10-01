@@ -23,10 +23,11 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table - required for Replit Auth
+// User storage table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: varchar("email").unique(),
+  email: varchar("email").unique().notNull(),
+  password: varchar("password"),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
@@ -113,9 +114,29 @@ export const eventRegistrations = pgTable("event_registrations", {
 // Insert schemas using drizzle-zod
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
+  password: true,
   firstName: true,
   lastName: true,
   profileImageUrl: true,
+});
+
+// Company signup schema
+export const companySignupSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string(),
+  companyName: z.string().min(2, "Company name is required"),
+  contactPersonName: z.string().min(2, "Contact person name is required"),
+  phone: z.string().min(10, "Valid phone number is required"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+// Company login schema
+export const companyLoginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
 });
 
 export const insertCompanySchema = createInsertSchema(companies).pick({
@@ -159,14 +180,6 @@ export const insertEventRegistrationSchema = createInsertSchema(eventRegistratio
   companyName: true,
 });
 
-// Extended schemas for validation
-export const companyRegistrationSchema = insertCompanySchema.extend({
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
 
 // Proof review schema
 export const proofReviewSchema = z.object({
@@ -182,7 +195,8 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpsertCompany = typeof companies.$inferInsert;
 export type InsertCompany = z.infer<typeof insertCompanySchema>;
 export type Company = typeof companies.$inferSelect;
-export type CompanyRegistration = z.infer<typeof companyRegistrationSchema>;
+export type CompanySignup = z.infer<typeof companySignupSchema>;
+export type CompanyLogin = z.infer<typeof companyLoginSchema>;
 
 export type UpsertTask = typeof tasks.$inferInsert;
 export type InsertTask = z.infer<typeof insertTaskSchema>;
