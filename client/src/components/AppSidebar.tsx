@@ -49,7 +49,7 @@ export function AppSidebar({ userType }: AppSidebarProps) {
     },
     {
       title: "Companies",
-      url: "/",
+      url: "/companies",
       icon: Users,
     },
     {

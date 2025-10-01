@@ -17,6 +17,7 @@ import { AdminDashboard } from "@/pages/AdminDashboard";
 import { EventRegistration } from "@/pages/EventRegistration";
 import { EventsManagement } from "@/pages/EventsManagement";
 import { AttendeesManagement } from "@/pages/AttendeesManagement";
+import CompaniesManagement from "@/pages/CompaniesManagement";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -51,6 +52,7 @@ function Router() {
         <>
           <Route path="/" component={AdminDashboard} />
           <Route path="/admin" component={AdminDashboard} />
+          <Route path="/companies" component={CompaniesManagement} />
           <Route path="/events" component={EventsManagement} />
           <Route path="/events/:eventId/attendees" component={AttendeesManagement} />
         </>
