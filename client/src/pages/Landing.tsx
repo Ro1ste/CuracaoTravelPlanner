@@ -71,7 +71,17 @@ export function Landing() {
                 </h1>
               </div>
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={handleLogin}
+                data-testid="button-admin-login"
+              >
+                Admin Login
+              </Button>
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </nav>
@@ -100,8 +110,7 @@ export function Landing() {
             </h1>
             
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Engage your team with gamified wellness challenges, track progress through 
-              interactive dashboards, and manage events with seamless QR code integration.
+              Boost team spirit with gamified wellness challenges, healthy living sessions, and expert-led online team-building. By joining as a company, you support better sports facilities and create new opportunities for our community.
             </p>
             
             <div className="flex flex-col items-center gap-6">

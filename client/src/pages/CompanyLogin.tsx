@@ -73,10 +73,10 @@ export default function CompanyLogin() {
             </div>
             <div>
               <CardTitle className="text-2xl" data-testid="login-title">
-                Company Login
+                Sign In
               </CardTitle>
               <CardDescription data-testid="login-description">
-                Sign in to your company account
+                Sign in to your account
               </CardDescription>
             </div>
           </div>
