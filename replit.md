@@ -104,11 +104,20 @@ The platform is built with a Fullstack JavaScript stack, utilizing React with Ty
 - ✅ All tables created: users, companies, tasks, task_proofs, events, event_registrations, sessions
 - ✅ Production-ready database configuration
 
+**Development Environment Update (October 1, 2025):**
+- ✅ Switched development to use real PostgreSQL database by default (DatabaseStorage)
+- ✅ Data now persists in development environment
+- ✅ Admin login works in local development with database credentials
+- ✅ Fixed critical security issue: password hashes no longer exposed in API responses
+- ✅ Session storage uses PostgreSQL in development
+- ℹ️ To use in-memory storage for testing, set `USE_DEV_STORAGE=true` environment variable
+
 ## Deployment Notes
 
 **Environment Modes:**
-- **Development** (`NODE_ENV=development`): Uses MemStorage (in-memory), dev seed data, Vite dev server
+- **Development** (`NODE_ENV=development`): Uses DatabaseStorage (PostgreSQL) by default for data persistence
 - **Production** (`NODE_ENV=production`): Uses DatabaseStorage (PostgreSQL), serves pre-built static assets
+- **Testing** (set `USE_DEV_STORAGE=true`): Uses MemStorage (in-memory) with sample seed data
 
 **Required Environment Variables for Production:**
 - `DATABASE_URL` - PostgreSQL connection string (auto-provided by Replit)
