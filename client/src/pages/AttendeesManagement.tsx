@@ -3,7 +3,15 @@ import { useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Mail, ArrowLeft } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { CheckCircle, XCircle, Mail, ArrowLeft, User, Building2, Phone as PhoneIcon, Mail as MailIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { EventRegistration, Event } from "@shared/schema";
@@ -134,83 +142,122 @@ export function AttendeesManagement() {
           {attendees.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">No registrations yet</p>
           ) : (
-            <div className="space-y-4">
-              {attendees.map((attendee) => (
-                <div
-                  key={attendee.id}
-                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border rounded-lg hover-elevate"
-                  data-testid={`attendee-${attendee.id}`}
-                >
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold" data-testid={`name-${attendee.id}`}>
-                        {attendee.firstName} {attendee.lastName}
-                      </h3>
-                      <Badge
-                        variant={
-                          attendee.status === 'approved'
-                            ? 'default'
-                            : attendee.status === 'rejected'
-                            ? 'destructive'
-                            : 'secondary'
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Company</TableHead>
+                    <TableHead>Registered</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {attendees.map((attendee) => (
+                    <TableRow key={attendee.id} data-testid={`attendee-${attendee.id}`}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span data-testid={`name-${attendee.id}`}>
+                            {attendee.firstName} {attendee.lastName}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <MailIcon className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm" data-testid={`email-${attendee.id}`}>
+                            {attendee.email}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <PhoneIcon className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm" data-testid={`phone-${attendee.id}`}>
+                            {attendee.phone}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm" data-testid={`company-${attendee.id}`}>
+                            {attendee.companyName || '-'}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {attendee.registeredAt 
+                          ? new Date(attendee.registeredAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })
+                          : '-'
                         }
-                        data-testid={`status-${attendee.id}`}
-                      >
-                        {attendee.status}
-                      </Badge>
-                    </div>
-                    <div className="text-sm text-muted-foreground space-y-1">
-                      <p data-testid={`email-${attendee.id}`}>Email: {attendee.email}</p>
-                      <p data-testid={`phone-${attendee.id}`}>Phone: {attendee.phone}</p>
-                      {attendee.companyName && (
-                        <p data-testid={`company-${attendee.id}`}>Company: {attendee.companyName}</p>
-                      )}
-                      <p className="text-xs">
-                        Registered: {new Date(attendee.registeredAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-2 flex-wrap">
-                    {attendee.status === 'pending' && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="default"
-                          onClick={() => updateStatusMutation.mutate({ attendeeId: attendee.id, status: 'approved' })}
-                          disabled={updateStatusMutation.isPending}
-                          data-testid={`button-approve-${attendee.id}`}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          variant={
+                            attendee.status === 'approved'
+                              ? 'default'
+                              : attendee.status === 'rejected'
+                              ? 'destructive'
+                              : 'secondary'
+                          }
+                          data-testid={`status-${attendee.id}`}
                         >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Approve
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => updateStatusMutation.mutate({ attendeeId: attendee.id, status: 'rejected' })}
-                          disabled={updateStatusMutation.isPending}
-                          data-testid={`button-reject-${attendee.id}`}
-                        >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Reject
-                        </Button>
-                      </>
-                    )}
-                    {attendee.status === 'approved' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => resendEmailMutation.mutate(attendee.id)}
-                        disabled={resendEmailMutation.isPending}
-                        data-testid={`button-resend-${attendee.id}`}
-                      >
-                        <Mail className="h-4 w-4 mr-1" />
-                        Resend QR Code
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                          {attendee.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-2 justify-end">
+                          {attendee.status === 'pending' && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => updateStatusMutation.mutate({ attendeeId: attendee.id, status: 'approved' })}
+                                disabled={updateStatusMutation.isPending}
+                                data-testid={`button-approve-${attendee.id}`}
+                              >
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => updateStatusMutation.mutate({ attendeeId: attendee.id, status: 'rejected' })}
+                                disabled={updateStatusMutation.isPending}
+                                data-testid={`button-reject-${attendee.id}`}
+                              >
+                                <XCircle className="h-4 w-4 mr-1" />
+                                Reject
+                              </Button>
+                            </>
+                          )}
+                          {attendee.status === 'approved' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => resendEmailMutation.mutate(attendee.id)}
+                              disabled={resendEmailMutation.isPending}
+                              data-testid={`button-resend-${attendee.id}`}
+                            >
+                              <Mail className="h-4 w-4 mr-1" />
+                              Resend QR Code
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
