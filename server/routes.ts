@@ -352,15 +352,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         reviewData.adminNotes
       );
 
-      // Award points only on transition from non-approved to approved
+      // Award points and calories only on transition from non-approved to approved
       const task = await storage.getTaskById(proof.taskId);
-      if (task && task.pointsReward) {
+      if (task) {
         if (previousStatus !== 'approved' && reviewData.status === 'approved') {
-          // Award points when approving for the first time
-          await storage.updateCompanyPoints(proof.companyId, task.pointsReward);
+          // Award points and calories when approving for the first time
+          if (task.pointsReward) {
+            await storage.updateCompanyPoints(proof.companyId, task.pointsReward);
+          }
+          if (task.caloriesBurned) {
+            await storage.updateCompanyCalories(proof.companyId, task.caloriesBurned);
+          }
         } else if (previousStatus === 'approved' && reviewData.status === 'rejected') {
-          // Subtract points when changing from approved to rejected
-          await storage.updateCompanyPoints(proof.companyId, -task.pointsReward);
+          // Subtract points and calories when changing from approved to rejected
+          if (task.pointsReward) {
+            await storage.updateCompanyPoints(proof.companyId, -task.pointsReward);
+          }
+          if (task.caloriesBurned) {
+            await storage.updateCompanyCalories(proof.companyId, -task.caloriesBurned);
+          }
         }
       }
 
@@ -375,13 +385,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/leaderboard', isAuthenticated, async (req, res) => {
     try {
       const companies = await storage.getAllCompanies();
-      const leaderboard = companies.map((company, index) => ({
-        id: company.id,
-        name: company.name,
-        points: company.totalPoints,
-        rank: index + 1
-      }));
-      res.json(leaderboard);
+      
+      // Sort by total points descending
+      const sorted = companies
+        .sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0))
+        .map((company, index) => ({
+          id: company.id,
+          name: company.name,
+          points: company.totalPoints || 0,
+          caloriesBurned: company.totalCaloriesBurned || 0,
+          rank: index + 1,
+        }));
+      
+      res.json(sorted);
     } catch (error) {
       console.error("Error fetching leaderboard:", error);
       res.status(500).json({ message: "Failed to fetch leaderboard" });
@@ -788,6 +804,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error checking in attendee:", error);
       res.status(500).json({ message: "Failed to check in attendee" });
+    }
+  });
+
+  // ========== LEADERBOARD ROUTES ==========
+  app.get('/api/leaderboard', isAuthenticated, async (req, res) => {
+    try {
+      const companies = await storage.getAllCompanies();
+      
+      // Sort by total points descending
+      const sorted = companies
+        .sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0))
+        .map((company, index) => ({
+          id: company.id,
+          name: company.name,
+          points: company.totalPoints || 0,
+          caloriesBurned: company.totalCaloriesBurned || 0,
+          rank: index + 1,
+        }));
+      
+      res.json(sorted);
+    } catch (error) {
+      console.error("Error fetching leaderboard:", error);
+      res.status(500).json({ message: "Failed to fetch leaderboard" });
     }
   });
 

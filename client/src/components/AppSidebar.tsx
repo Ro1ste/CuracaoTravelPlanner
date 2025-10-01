@@ -59,7 +59,7 @@ export function AppSidebar({ userType }: AppSidebarProps) {
     },
     {
       title: "Tasks",
-      url: "/",
+      url: "/tasks",
       icon: CheckSquare,
     },
     {

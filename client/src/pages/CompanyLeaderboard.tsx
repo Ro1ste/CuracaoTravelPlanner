@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Medal, Award } from "lucide-react";
+import { Trophy, Medal, Award, Flame } from "lucide-react";
 
 interface LeaderboardEntry {
   id: string;
   name: string;
   points: number;
+  caloriesBurned: number;
   rank: number;
 }
 
@@ -70,10 +71,23 @@ export function CompanyLeaderboard() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-primary" data-testid={`points-${entry.rank}`}>
-                      {entry.points}
-                    </p>
-                    <p className="text-sm text-muted-foreground">points</p>
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <p className="text-2xl font-bold text-primary" data-testid={`points-${entry.rank}`}>
+                          {entry.points}
+                        </p>
+                        <p className="text-sm text-muted-foreground">points</p>
+                      </div>
+                      <div className="border-l pl-4">
+                        <div className="flex items-center gap-2">
+                          <Flame className="h-5 w-5 text-orange-500" />
+                          <p className="text-xl font-bold" data-testid={`calories-${entry.rank}`}>
+                            {entry.caloriesBurned}
+                          </p>
+                        </div>
+                        <p className="text-sm text-muted-foreground">calories</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))

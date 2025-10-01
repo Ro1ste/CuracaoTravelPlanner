@@ -22,6 +22,7 @@ import { EventsManagement } from "@/pages/EventsManagement";
 import { AttendeesManagement } from "@/pages/AttendeesManagement";
 import CompaniesManagement from "@/pages/CompaniesManagement";
 import AdministratorsManagement from "@/pages/AdministratorsManagement";
+import { TasksManagement } from "@/pages/TasksManagement";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -57,6 +58,7 @@ function Router() {
           <Route path="/" component={AdminDashboard} />
           <Route path="/admin" component={AdminDashboard} />
           <Route path="/companies" component={CompaniesManagement} />
+          <Route path="/tasks" component={TasksManagement} />
           <Route path="/administrators" component={AdministratorsManagement} />
           <Route path="/events" component={EventsManagement} />
           <Route path="/events/:eventId/attendees" component={AttendeesManagement} />

@@ -37,6 +37,7 @@ export interface IStorage {
   createCompany(company: UpsertCompany): Promise<Company>;
   updateCompany(id: string, updates: Partial<UpsertCompany>): Promise<Company | undefined>;
   updateCompanyPoints(id: string, pointsToAdd: number): Promise<Company | undefined>;
+  updateCompanyCalories(id: string, caloriesToAdd: number): Promise<Company | undefined>;
   
   // Task operations
   getAllTasks(): Promise<Task[]>;
@@ -181,7 +182,20 @@ export class DatabaseStorage implements IStorage {
     const [company] = await db
       .update(companies)
       .set({ 
-        totalPoints: sql`${companies.totalPoints} + ${pointsToAdd}`,
+        totalPoints: sql`COALESCE(${companies.totalPoints}, 0) + ${pointsToAdd}`,
+        updatedAt: new Date() 
+      })
+      .where(eq(companies.id, id))
+      .returning();
+    return company;
+  }
+
+  async updateCompanyCalories(id: string, caloriesToAdd: number): Promise<Company | undefined> {
+    const db = await this.getDb();
+    const [company] = await db
+      .update(companies)
+      .set({ 
+        totalCaloriesBurned: sql`COALESCE(${companies.totalCaloriesBurned}, 0) + ${caloriesToAdd}`,
         updatedAt: new Date() 
       })
       .where(eq(companies.id, id))
@@ -480,6 +494,19 @@ export class MemStorage implements IStorage {
     const updated: Company = {
       ...company,
       totalPoints: (company.totalPoints ?? 0) + pointsToAdd,
+      updatedAt: new Date(),
+    };
+    this.companies.set(id, updated);
+    return updated;
+  }
+
+  async updateCompanyCalories(id: string, caloriesToAdd: number): Promise<Company | undefined> {
+    const company = this.companies.get(id);
+    if (!company) return undefined;
+    
+    const updated: Company = {
+      ...company,
+      totalCaloriesBurned: (company.totalCaloriesBurned ?? 0) + caloriesToAdd,
       updatedAt: new Date(),
     };
     this.companies.set(id, updated);
