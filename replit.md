@@ -56,6 +56,48 @@ The platform is built with a Fullstack JavaScript stack, utilizing React with Ty
 
 ## Recent Changes (October 1, 2025)
 
+**Admin Task Management & Calories Tracking System (October 1, 2025):**
+- ✅ Created comprehensive TasksManagement page at `/tasks` for admin users
+- ✅ Admin can create tasks with title, description, date, YouTube video URL, points reward, and calories burned
+- ✅ Full CRUD operations: Create, edit, and delete tasks with form validation
+- ✅ Implemented calories tracking system throughout the platform
+- ✅ Storage methods: `updateCompanyCalories()` added to IStorage interface and both storage implementations
+- ✅ SQL safety: COALESCE used in DatabaseStorage to handle NULL values in point/calorie arithmetic
+- ✅ Proof approval now awards BOTH points AND calories to companies
+- ✅ Leaderboard API endpoint (GET `/api/leaderboard`) returns company rankings with points and calories
+- ✅ Company portal redesigned with vibrant, colorful Material Design layout
+- ✅ Stat cards display total points, calories burned, tasks completed, and current rank with gradient backgrounds
+- ✅ Task cards feature category-based colors, YouTube video thumbnails, and "Watch Tutorial" CTAs
+- ✅ Leaderboard page shows company rankings with both points and calories burned
+- ✅ Settings page allows companies to edit their profile information
+- ✅ Design guidelines updated with vibrant wellness theme: green-teal wellness gradients, orange energy accents, blue-purple achievement colors
+- ✅ Security fix: YouTube video links use window.open with explicit opener null to prevent tabnabbing
+
+**Task Creation & Management Workflow:**
+1. Admin navigates to Tasks Management page from sidebar
+2. Clicks "Create Task" button to open dialog
+3. Fills form with task details including YouTube URL, points (1-100), and calories (1-1000)
+4. Task is created and displayed in task list
+5. Admin can edit or delete tasks as needed
+6. Companies see tasks on their dashboard and can submit proofs
+
+**Calories Tracking Flow:**
+1. Admin creates task with calories burned value
+2. Company completes task and submits proof
+3. Admin reviews proof and approves it
+4. System awards BOTH points and calories to company
+5. Company's totalPoints and totalCaloriesBurned are incremented
+6. Dashboard displays updated totals with colorful stat cards
+7. Leaderboard shows rankings with both metrics
+
+**Technical Implementation:**
+- Storage methods: `updateCompanyCalories()` with COALESCE for NULL-safe SQL arithmetic
+- API endpoints: POST `/api/tasks`, PATCH `/api/tasks/:id`, DELETE `/api/tasks/:id`, GET `/api/leaderboard`
+- Proof review: PATCH `/api/proofs/:id/review` awards points and calories on status transition to approved
+- Frontend: TasksManagement page with React Query mutations, Zod validation, shadcn/ui components
+- UI components: StatCard with gradient overlays, TaskCard with clickable video thumbnails
+- Security: Window.open with noopener and explicit opener null for YouTube links
+
 **Email Domain Update (October 1, 2025):**
 - ✅ Updated email sender address from info@curacaointernationalsportsweek.com to info@bepartofthemovement.com
 - ✅ All automated emails (QR codes, event notifications, admin welcome emails) now send from bepartofthemovement.com
