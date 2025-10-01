@@ -53,13 +53,13 @@ export interface IStorage {
   getAllProofs(): Promise<TaskProof[]>;
   createProof(proof: UpsertTaskProof): Promise<TaskProof>;
   updateProofStatus(id: string, status: 'approved' | 'rejected', adminNotes?: string): Promise<TaskProof | undefined>;
-  updateProofContent(id: string, contentUrl: string): Promise<TaskProof | undefined>;
   
   // Event operations
   getAllEvents(): Promise<Event[]>;
   getEventById(id: string): Promise<Event | undefined>;
+  getEventByShortCode(shortCode: string): Promise<Event | undefined>;
   getActiveEvents(): Promise<Event[]>;
-  createEvent(event: InsertEvent): Promise<Event>;
+  createEvent(event: InsertEvent & { shortCode?: string }): Promise<Event>;
   updateEvent(id: string, updates: Partial<InsertEvent>): Promise<Event | undefined>;
   
   // Event registration operations
@@ -282,16 +282,6 @@ export class DatabaseStorage implements IStorage {
     return proof;
   }
 
-  async updateProofContent(id: string, contentUrl: string): Promise<TaskProof | undefined> {
-    const db = await this.getDb();
-    const [proof] = await db
-      .update(taskProofs)
-      .set({ contentUrl })
-      .where(eq(taskProofs.id, id))
-      .returning();
-    return proof;
-  }
-
   // Event operations
   async getAllEvents(): Promise<Event[]> {
     const db = await this.getDb();
@@ -309,9 +299,32 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(events).where(eq(events.isActive, true)).orderBy(desc(events.eventDate));
   }
 
-  async createEvent(eventData: InsertEvent): Promise<Event> {
+  async createEvent(eventData: InsertEvent & { shortCode?: string }): Promise<Event> {
     const db = await this.getDb();
-    const [event] = await db.insert(events).values(eventData).returning();
+    
+    // Generate unique short code with retry logic
+    let shortCode = eventData.shortCode;
+    if (!shortCode) {
+      const { nanoid } = await import('nanoid');
+      let attempts = 0;
+      while (attempts < 10) {
+        shortCode = nanoid(6).toUpperCase();
+        const existing = await this.getEventByShortCode(shortCode);
+        if (!existing) break;
+        attempts++;
+      }
+      if (attempts === 10) {
+        throw new Error('Failed to generate unique short code');
+      }
+    }
+    
+    const [event] = await db.insert(events).values({ ...eventData, shortCode }).returning();
+    return event;
+  }
+
+  async getEventByShortCode(shortCode: string): Promise<Event | undefined> {
+    const db = await this.getDb();
+    const [event] = await db.select().from(events).where(eq(events.shortCode, shortCode));
     return event;
   }
 
@@ -581,7 +594,7 @@ export class MemStorage implements IStorage {
       id,
       taskId: proofData.taskId,
       companyId: proofData.companyId,
-      contentUrl: proofData.contentUrl,
+      contentUrls: proofData.contentUrls,
       contentType: proofData.contentType,
       status: proofData.status ?? 'pending',
       adminNotes: proofData.adminNotes ?? null,
@@ -605,18 +618,6 @@ export class MemStorage implements IStorage {
       status,
       adminNotes: adminNotes ?? null,
       reviewedAt: new Date(),
-    };
-    this.proofs.set(id, updated);
-    return updated;
-  }
-
-  async updateProofContent(id: string, contentUrl: string): Promise<TaskProof | undefined> {
-    const proof = this.proofs.get(id);
-    if (!proof) return undefined;
-    
-    const updated: TaskProof = {
-      ...proof,
-      contentUrl,
     };
     this.proofs.set(id, updated);
     return updated;
@@ -658,10 +659,18 @@ export class MemStorage implements IStorage {
     });
   }
 
-  async createEvent(eventData: InsertEvent): Promise<Event> {
+  async createEvent(eventData: InsertEvent & { shortCode?: string }): Promise<Event> {
     const id = `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Generate unique short code for MemStorage
+    let shortCode = eventData.shortCode;
+    if (!shortCode) {
+      const { nanoid } = await import('nanoid');
+      shortCode = nanoid(6).toUpperCase();
+    }
     const event: Event = {
       id,
+      shortCode,
       title: eventData.title,
       description: eventData.description ?? null,
       youtubeUrl: eventData.youtubeUrl ?? null,
@@ -674,6 +683,15 @@ export class MemStorage implements IStorage {
     };
     this.events.set(id, event);
     return event;
+  }
+
+  async getEventByShortCode(shortCode: string): Promise<Event | undefined> {
+    for (const event of this.events.values()) {
+      if (event.shortCode === shortCode) {
+        return event;
+      }
+    }
+    return undefined;
   }
 
   async updateEvent(id: string, updates: Partial<InsertEvent>): Promise<Event | undefined> {

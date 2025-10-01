@@ -13,18 +13,23 @@ import fddkLogo from "@assets/FDDK_1759241722627.png";
 export function EventRegistration() {
   const { toast } = useToast();
   
-  // Get event ID from URL parameter
-  const [match, params] = useRoute("/event-registration/:eventId");
-  const eventId = params?.eventId;
+  // Try to match both short code and event ID routes
+  const [matchShort, paramsShort] = useRoute("/e/:shortCode");
+  const [matchEvent, paramsEvent] = useRoute("/event-registration/:eventId");
+  
+  const shortCode = paramsShort?.shortCode;
+  const eventId = paramsEvent?.eventId;
 
   // Fetch events
   const { data: events = [], isLoading: eventsLoading } = useQuery<Event[]>({
     queryKey: ['/api/events'],
   });
 
-  // Find specific event by ID
-  const event = eventId 
-    ? events.find(e => e.id === eventId) 
+  // Find specific event by short code or ID
+  const event = shortCode
+    ? events.find(e => e.shortCode === shortCode)
+    : eventId
+    ? events.find(e => e.id === eventId)
     : events[0];
 
   const registerMutation = useMutation({

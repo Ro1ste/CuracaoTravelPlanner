@@ -42,6 +42,7 @@ function Router() {
         <Route path="/" component={Landing} />
         <Route path="/signup" component={CompanySignup} />
         <Route path="/login" component={CompanyLogin} />
+        <Route path="/e/:shortCode" component={EventRegistration} />
         <Route path="/event-registration" component={EventRegistration} />
         <Route path="/event-registration/:eventId" component={EventRegistration} />
         <Route component={Landing} />
@@ -134,7 +135,7 @@ function AppContent() {
   const [location] = useLocation();
 
   // Event registration pages should always render standalone
-  const isEventRegistration = location.startsWith('/event-registration');
+  const isEventRegistration = location.startsWith('/event-registration') || location.startsWith('/e/');
 
   if (isLoading) {
     return (
@@ -148,6 +149,7 @@ function AppContent() {
   if (isEventRegistration) {
     return (
       <Switch>
+        <Route path="/e/:shortCode" component={EventRegistration} />
         <Route path="/event-registration" component={EventRegistration} />
         <Route path="/event-registration/:eventId" component={EventRegistration} />
       </Switch>

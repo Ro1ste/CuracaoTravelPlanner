@@ -71,7 +71,7 @@ export const taskProofs = pgTable("task_proofs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   taskId: varchar("task_id").references(() => tasks.id).notNull(),
   companyId: varchar("company_id").references(() => companies.id).notNull(),
-  contentUrl: varchar("content_url").notNull(),
+  contentUrls: text("content_urls").array().notNull(),
   contentType: varchar("content_type").notNull(), // 'image' or 'video'
   status: varchar("status").default("pending"), // 'pending', 'approved', 'rejected'
   adminNotes: text("admin_notes"),
@@ -82,6 +82,7 @@ export const taskProofs = pgTable("task_proofs", {
 // Events table
 export const events = pgTable("events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  shortCode: varchar("short_code").unique().notNull(),
   title: varchar("title").notNull(),
   description: text("description"),
   youtubeUrl: varchar("youtube_url"),
@@ -161,8 +162,12 @@ export const insertTaskSchema = createInsertSchema(tasks).pick({
 export const insertTaskProofSchema = createInsertSchema(taskProofs).pick({
   taskId: true,
   companyId: true,
-  contentUrl: true,
+  contentUrls: true,
   contentType: true,
+}).extend({
+  contentUrls: z.array(z.string().url())
+    .min(6, "Please upload at least 6 images or videos")
+    .max(10, "Maximum 10 files allowed"),
 });
 
 export const insertEventSchema = createInsertSchema(events).pick({

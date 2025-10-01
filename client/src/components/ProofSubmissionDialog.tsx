@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, CheckCircle } from "lucide-react";
+import { Upload, CheckCircle, Image as ImageIcon } from "lucide-react";
 
 const proofSubmissionSchema = z.object({
   contentType: z.enum(["image", "video"]),
@@ -56,8 +56,7 @@ export function ProofSubmissionDialog({
   onOpenChange,
 }: ProofSubmissionDialogProps) {
   const { toast } = useToast();
-  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
-  const [proofId, setProofId] = useState<string | null>(null);
+  const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
 
   const form = useForm<ProofSubmissionFormData>({
     resolver: zodResolver(proofSubmissionSchema),
@@ -82,36 +81,32 @@ export function ProofSubmissionDialog({
     result: UploadResult<Record<string, unknown>, Record<string, unknown>>
   ) => {
     if (result.successful.length > 0) {
-      const uploadURL = result.successful[0].uploadURL;
-      setUploadedUrl(uploadURL || null);
+      const newUrls = result.successful.map(file => file.uploadURL).filter(Boolean) as string[];
+      setUploadedUrls(prev => [...prev, ...newUrls]);
       toast({
-        title: "File uploaded!",
-        description: "Your file has been uploaded successfully.",
+        title: `${newUrls.length} file(s) uploaded!`,
+        description: `You have ${uploadedUrls.length + newUrls.length} file(s) total. Minimum 6 required.`,
       });
     }
   };
 
   const submitProofMutation = useMutation({
     mutationFn: async (data: ProofSubmissionFormData) => {
-      if (!uploadedUrl) {
-        throw new Error("Please upload a file first");
+      if (uploadedUrls.length < 6) {
+        throw new Error("Please upload at least 6 images or videos");
       }
 
-      // First, create the proof with a placeholder URL
+      if (uploadedUrls.length > 10) {
+        throw new Error("Maximum 10 files allowed");
+      }
+
       const res = await apiRequest("POST", "/api/proofs", {
         taskId,
         companyId,
-        contentUrl: uploadedUrl,
+        contentUrls: uploadedUrls,
         contentType: data.contentType,
       });
-      const proof = await res.json();
-
-      // Then update the proof with the normalized object path and set ACL
-      await apiRequest("PUT", `/api/proofs/${proof.id}/content`, {
-        contentURL: uploadedUrl,
-      });
-
-      return proof;
+      return await res.json();
     },
     onSuccess: () => {
       toast({
@@ -122,8 +117,7 @@ export function ProofSubmissionDialog({
         queryKey: ["/api/companies", companyId, "proofs"],
       });
       form.reset();
-      setUploadedUrl(null);
-      setProofId(null);
+      setUploadedUrls([]);
       onOpenChange(false);
     },
     onError: (error: any) => {
@@ -136,10 +130,10 @@ export function ProofSubmissionDialog({
   });
 
   const onSubmit = (data: ProofSubmissionFormData) => {
-    if (!uploadedUrl) {
+    if (uploadedUrls.length < 6) {
       toast({
         title: "Error",
-        description: "Please upload a file first",
+        description: "Please upload at least 6 images or videos",
         variant: "destructive",
       });
       return;
@@ -150,13 +144,17 @@ export function ProofSubmissionDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="sm:max-w-[425px]"
+        className="sm:max-w-[600px]"
         data-testid="dialog-proof-submission"
       >
         <DialogHeader>
           <DialogTitle data-testid="dialog-title">Submit Proof</DialogTitle>
           <DialogDescription>
             Submit proof for: <strong>{taskTitle}</strong>
+            <br />
+            <span className="text-sm text-muted-foreground">
+              Upload minimum 6 images or videos to show your activity
+            </span>
           </DialogDescription>
         </DialogHeader>
 
@@ -178,8 +176,8 @@ export function ProofSubmissionDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="image">Image</SelectItem>
-                      <SelectItem value="video">Video</SelectItem>
+                      <SelectItem value="image">Images</SelectItem>
+                      <SelectItem value="video">Videos</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -188,32 +186,53 @@ export function ProofSubmissionDialog({
             />
 
             <div className="space-y-2">
-              <FormLabel>Upload File</FormLabel>
+              <FormLabel>Upload Files (Minimum 6)</FormLabel>
               <ObjectUploader
-                maxNumberOfFiles={1}
-                maxFileSize={10485760}
+                maxNumberOfFiles={10}
+                maxFileSize={30485760}
                 onGetUploadParameters={handleGetUploadParameters}
                 onComplete={handleUploadComplete}
                 buttonVariant="outline"
                 buttonClassName="w-full"
               >
                 <div className="flex items-center gap-2">
-                  {uploadedUrl ? (
+                  {uploadedUrls.length > 0 ? (
                     <>
-                      <CheckCircle className="h-4 w-4" />
-                      <span>File Uploaded - Click to Replace</span>
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span>{uploadedUrls.length} file(s) uploaded - Click to add more</span>
                     </>
                   ) : (
                     <>
                       <Upload className="h-4 w-4" />
-                      <span>Upload {form.watch("contentType")}</span>
+                      <span>Upload {form.watch("contentType")} (Minimum 6)</span>
                     </>
                   )}
                 </div>
               </ObjectUploader>
               <FormDescription>
-                Upload an image (JPG, PNG) or video (MP4, MOV). Max size: 10MB
+                Upload images (JPG, PNG) or videos (MP4, MOV). Max size: 30MB per file. Upload at least 6 files.
               </FormDescription>
+              
+              {uploadedUrls.length > 0 && (
+                <div className="mt-3 p-3 border rounded-md bg-muted/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <ImageIcon className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      Uploaded Files: {uploadedUrls.length} / 6 minimum
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto">
+                    {uploadedUrls.map((url, index) => (
+                      <div
+                        key={index}
+                        className="aspect-square rounded-md bg-accent flex items-center justify-center text-xs p-1"
+                      >
+                        File {index + 1}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <DialogFooter>
@@ -221,8 +240,7 @@ export function ProofSubmissionDialog({
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  setUploadedUrl(null);
-                  setProofId(null);
+                  setUploadedUrls([]);
                   onOpenChange(false);
                 }}
                 data-testid="button-cancel"
@@ -231,10 +249,10 @@ export function ProofSubmissionDialog({
               </Button>
               <Button
                 type="submit"
-                disabled={submitProofMutation.isPending || !uploadedUrl}
+                disabled={submitProofMutation.isPending || uploadedUrls.length < 6}
                 data-testid="button-submit-proof"
               >
-                {submitProofMutation.isPending ? "Submitting..." : "Submit Proof"}
+                {submitProofMutation.isPending ? "Submitting..." : `Submit Proof (${uploadedUrls.length}/6)`}
               </Button>
             </DialogFooter>
           </form>

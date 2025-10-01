@@ -326,7 +326,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         companyId: company.id
       });
 
-      const proof = await storage.createProof(proofData);
+      // Normalize all object storage paths with ACL policies
+      const objectStorageService = new ObjectStorageService();
+      const normalizedUrls = await Promise.all(
+        proofData.contentUrls.map(url => 
+          objectStorageService.trySetObjectEntityAclPolicy(url, {
+            owner: userId,
+            visibility: "private",
+          })
+        )
+      );
+
+      // Create proof with normalized URLs
+      const proof = await storage.createProof({
+        ...proofData,
+        contentUrls: normalizedUrls,
+      });
+      
       console.log('Created proof:', JSON.stringify(proof, null, 2));
       res.status(201).json(proof);
     } catch (error: any) {
@@ -582,43 +598,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update proof content URL after upload and set ACL
-  app.put("/api/proofs/:id/content", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user?.claims?.sub;
-      if (!req.body.contentURL) {
-        return res.status(400).json({ error: "contentURL is required" });
-      }
-
-      const proof = await storage.getProofById(req.params.id);
-      if (!proof) {
-        return res.status(404).json({ error: "Proof not found" });
-      }
-
-      // Verify ownership - user must own the company that submitted the proof
-      const company = await storage.getCompany(proof.companyId);
-      if (!company || company.userId !== userId) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      const objectStorageService = new ObjectStorageService();
-      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
-        req.body.contentURL,
-        {
-          owner: userId,
-          visibility: "private",
-        }
-      );
-
-      // Update proof with the object path
-      await storage.updateProofContent(req.params.id, objectPath);
-
-      res.status(200).json({ objectPath });
-    } catch (error) {
-      console.error("Error setting proof content:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
 
   // ========== EVENT ROUTES ==========
   // Get all active events
@@ -658,21 +637,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Register for event
-  app.post('/api/events/:id/register', async (req, res) => {
+  app.post('/api/events/:idOrCode/register', async (req, res) => {
     try {
-      const event = await storage.getEventById(req.params.id);
+      let event = await storage.getEventById(req.params.idOrCode);
+      if (!event) {
+        event = await storage.getEventByShortCode(req.params.idOrCode);
+      }
       if (!event) {
         return res.status(404).json({ message: "Event not found" });
       }
 
       const registration = await storage.createEventRegistration({
-        eventId: req.params.id,
+        eventId: event.id,
         ...req.body
       });
       res.status(201).json(registration);
     } catch (error) {
       console.error("Error registering for event:", error);
       res.status(500).json({ message: "Failed to register for event" });
+    }
+  });
+
+  app.get('/api/events/by-code/:shortCode', async (req, res) => {
+    try {
+      const event = await storage.getEventByShortCode(req.params.shortCode);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      res.json(event);
+    } catch (error) {
+      console.error("Error fetching event by short code:", error);
+      res.status(500).json({ message: "Failed to fetch event" });
     }
   });
 

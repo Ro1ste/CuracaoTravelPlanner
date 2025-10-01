@@ -80,10 +80,10 @@ export function EventsManagement() {
       setCreateDialogOpen(false);
       form.reset();
       
-      // Show shareable link toast
-      const shareableLink = `${window.location.origin}/event-registration/${newEvent.id}`;
+      // Show shareable link toast  
+      const shareableLink = `${window.location.origin}/e/${newEvent.shortCode}`;
       toast({
-        title: "Shareable Link Ready",
+        title: "Short Link Ready",
         description: shareableLink,
         duration: 5000,
       });
@@ -101,18 +101,18 @@ export function EventsManagement() {
     createEventMutation.mutate(data);
   };
 
-  const getShareableLink = (eventId: string) => {
-    return `${window.location.origin}/event-registration/${eventId}`;
+  const getShareableLink = (event: Event) => {
+    return `${window.location.origin}/e/${event.shortCode}`;
   };
 
-  const copyLinkToClipboard = async (eventId: string) => {
-    const link = getShareableLink(eventId);
+  const copyLinkToClipboard = async (event: Event) => {
+    const link = getShareableLink(event);
     try {
       await navigator.clipboard.writeText(link);
-      setCopiedEventId(eventId);
+      setCopiedEventId(event.id);
       toast({
-        title: "Link Copied!",
-        description: "Shareable link has been copied to clipboard",
+        title: "Short Link Copied!",
+        description: link,
       });
       setTimeout(() => setCopiedEventId(null), 2000);
     } catch (error) {
@@ -408,14 +408,14 @@ export function EventsManagement() {
                       <div className="flex gap-2">
                         <Input
                           readOnly
-                          value={getShareableLink(event.id)}
+                          value={getShareableLink(event)}
                           className="flex-1 font-mono text-sm"
                           data-testid={`input-shareable-link-${event.id}`}
                         />
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => copyLinkToClipboard(event.id)}
+                          onClick={() => copyLinkToClipboard(event)}
                           data-testid={`button-copy-link-${event.id}`}
                         >
                           {copiedEventId === event.id ? (
