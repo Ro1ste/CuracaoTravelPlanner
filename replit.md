@@ -2,7 +2,7 @@
 
 ## 🎯 Project Overview
 
-A comprehensive corporate wellness and event management platform built with Fullstack JavaScript stack. The platform supports dual authentication for companies and admins, task management with proof uploads, leaderboards, event registration with QR-based check-ins, and file upload capabilities.
+A comprehensive corporate wellness and event management platform built with Fullstack JavaScript stack. The platform uses email/password authentication for companies, task management with proof uploads, leaderboards, event registration with QR-based check-ins, and file upload capabilities. Admins can use dev mode quick-login for testing.
 
 ## ✅ Current Status
 
@@ -16,7 +16,9 @@ A comprehensive corporate wellness and event management platform built with Full
 - ✅ Dev Mode for testing without database
 
 **Frontend Complete:**
-- ✅ Landing page for non-authenticated users
+- ✅ Landing page with signup/login options
+- ✅ Company Signup page with full registration form
+- ✅ Company Login page with email/password authentication
 - ✅ Company Dashboard with task management and leaderboards
 - ✅ Admin Dashboard with company oversight and proof management
 - ✅ Event Registration with QR code functionality
@@ -28,7 +30,9 @@ A comprehensive corporate wellness and event management platform built with Full
 - ✅ Dev Mode login buttons for easy testing
 
 **Backend Complete:**
-- ✅ Full authentication with Replit Auth
+- ✅ Email/password authentication with bcrypt hashing
+- ✅ Company signup with automatic profile creation
+- ✅ Session-based authentication with Passport.js
 - ✅ Database schema and storage interface
 - ✅ Complete REST API with all CRUD operations
 - ✅ QR code generation service with signed tokens
@@ -50,11 +54,12 @@ A comprehensive corporate wellness and event management platform built with Full
 **Backend:**
 - Express.js with TypeScript
 - Drizzle ORM with PostgreSQL
-- Replit Auth (OpenID Connect)
-- Passport.js for authentication
+- Email/password authentication with bcrypt
+- Passport.js for session management
 - Session management with connect-pg-simple
 
 **Features:**
+- Email/password company signup and login
 - Task management with proof submissions
 - Company leaderboards and analytics
 - Event registration and QR check-ins
@@ -65,6 +70,7 @@ A comprehensive corporate wellness and event management platform built with Full
 - File upload capabilities (30MB limit)
 - Admin dashboard for oversight
 - Dark/light theme switching
+- Dev mode quick-login for testing
 
 ## 🗂 Project Structure
 
@@ -82,6 +88,8 @@ A comprehensive corporate wellness and event management platform built with Full
 │   │   └── ThemeToggle.tsx        # Dark/light mode
 │   ├── pages/
 │   │   ├── Landing.tsx            # Authentication landing
+│   │   ├── CompanySignup.tsx      # Company registration
+│   │   ├── CompanyLogin.tsx       # Company login
 │   │   ├── CompanyDashboard.tsx   # Company main page
 │   │   ├── AdminDashboard.tsx     # Admin main page
 │   │   ├── EventsManagement.tsx   # Admin event creation
@@ -105,7 +113,7 @@ A comprehensive corporate wellness and event management platform built with Full
 ## 📊 Database Schema
 
 **Core Tables:**
-- `users` - User authentication and profiles
+- `users` - User authentication and profiles (email, password hash, firstName, lastName)
 - `companies` - Company registrations and stats
 - `tasks` - Daily wellness tasks
 - `task_proofs` - Proof submissions for review
@@ -115,6 +123,7 @@ A comprehensive corporate wellness and event management platform built with Full
 
 **Key Features:**
 - UUID primary keys with automatic generation
+- Password hashing with bcrypt (10 rounds)
 - Comprehensive tracking of points, calories, team sizes
 - Proof submission workflow with admin approval
 - Attendee approval workflow (pending → approved → rejected)
@@ -220,16 +229,17 @@ const showDevButtons = import.meta.env.VITE_DEV_MODE !== 'false';
 
 **Production Mode** (deployed app):
 1. **Preview URL:** Available in Replit workspace
-2. **Login:** Click "Get Started" → `/api/login`
-3. **Authentication:** Uses Replit Auth (Google, GitHub, email)
-4. **Role Detection:** Admin users (email contains "admin") see admin dashboard
-5. **Company Users:** See company dashboard with tasks and leaderboards
+2. **Signup:** Click "Get Started" → Fill registration form
+3. **Login:** Click "Sign In" → Enter email/password
+4. **Authentication:** Email/password with bcrypt hashing
+5. **Role Detection:** Admin users use dev mode, companies use signup/login
+6. **Company Dashboard:** Access after successful login
 
 **To Use Production Mode in Development:**
 1. Set `USE_DEV_STORAGE=false` in Replit Secrets
-2. Set `VITE_DEV_MODE=false` in Replit Secrets
+2. Set `VITE_DEV_MODE=false` in Replit Secrets (hides dev login buttons)
 3. Restart the application
-4. Configure Replit Auth environment variables
+4. Configure database and required environment variables
 
 ## 💾 Development Commands
 
@@ -260,10 +270,33 @@ npm install <package>    # Add dependencies
 
 ---
 
-*Last Updated: September 30, 2025*
-*Status: Attendee Approval & Email Workflow Complete - Ready for Testing*
+*Last Updated: October 1, 2025*
+*Status: Email/Password Authentication Complete - Ready for Testing*
 
-## 🆕 Recent Changes (September 30, 2025)
+## 🆕 Recent Changes (October 1, 2025)
+
+**Email/Password Authentication System:**
+- ✅ Added password field to users schema with bcrypt hashing (10 rounds)
+- ✅ Installed and configured bcrypt for password security
+- ✅ Created CompanySignup page with full registration form (email, company name, password)
+- ✅ Created CompanyLogin page with email/password authentication
+- ✅ Implemented signup backend route (POST /api/auth/signup)
+- ✅ Implemented login backend route (POST /api/auth/login)
+- ✅ Updated Landing page with "Get Started" (signup) and "Sign In" (login) buttons
+- ✅ Maintained dev mode quick-login for admin/company testing
+- ✅ Added getUserByEmail storage method for authentication
+- ✅ Successfully tested complete signup → login → dashboard flow
+
+**Authentication Workflow:**
+1. Company visits landing page → clicks "Get Started"
+2. Fills signup form with email, company name, contact name, phone, password
+3. Backend hashes password with bcrypt and creates user + company profile
+4. User redirects to login page with success message
+5. User logs in with email and password
+6. Session established via Passport.js
+7. User redirected to company dashboard
+
+## Previous Changes (September 30, 2025)
 
 **Attendee Approval & Email Workflow:**
 - ✅ Added approval status to event registrations (pending/approved/rejected)
