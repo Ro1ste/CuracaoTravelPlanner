@@ -153,6 +153,12 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
+  // Check if this is a traditional email/password login (has claims.sub but no OAuth tokens)
+  if (user?.claims?.sub && !user.refresh_token) {
+    // Traditional login - just check if user exists and is valid
+    return next();
+  }
+
   // Replit OAuth authentication - check token validity and refresh if needed
   if (!user.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });

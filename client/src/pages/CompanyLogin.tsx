@@ -1,16 +1,66 @@
-import { Building2 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { Building2, Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
 
+import { companyLoginSchema, type CompanyLogin } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 export default function CompanyLogin() {
+  const [_, setLocation] = useLocation();
   const { toast } = useToast();
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleReplitLogin = () => {
-    // Redirect to Replit OAuth login
-    window.location.href = "/api/login";
+  const form = useForm<CompanyLogin>({
+    resolver: zodResolver(companyLoginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const loginMutation = useMutation({
+    mutationFn: async (data: CompanyLogin) => {
+      return await apiRequest("POST", "/api/auth/login", data);
+    },
+    onSuccess: async () => {
+      // Invalidate user query to refetch with new session
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      
+      toast({
+        title: "Welcome back!",
+        description: "You have successfully logged in.",
+      });
+      
+      // Navigate to home - app will auto-route to appropriate dashboard
+      setLocation("/");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Login failed",
+        description: error.message || "Invalid email or password.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: CompanyLogin) => {
+    loginMutation.mutate(data);
   };
 
   return (
@@ -32,29 +82,86 @@ export default function CompanyLogin() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="text-center">
-              <p className="text-muted-foreground mb-4">
-                Sign in with your Replit account to access the Curacao Travel Planner
-              </p>
-            </div>
-            
-            <Button
-              onClick={handleReplitLogin}
-              className="w-full"
-              size="lg"
-              data-testid="button-replit-login"
-            >
-              <Building2 className="mr-2 h-4 w-4" />
-              Sign in with Replit
-            </Button>
-          </div>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="email"
+                        placeholder="contact@company.com"
+                        data-testid="input-email"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <div className="mt-6 text-center text-sm">
-            <span className="text-muted-foreground">
-              You'll be redirected to Replit for authentication
-            </span>
-          </div>
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          {...field}
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Enter your password"
+                          data-testid="input-password"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0 h-full"
+                          onClick={() => setShowPassword(!showPassword)}
+                          data-testid="button-toggle-password"
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex flex-col gap-4 pt-4">
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={loginMutation.isPending}
+                  data-testid="button-login"
+                >
+                  {loginMutation.isPending ? "Logging in..." : "Log In"}
+                </Button>
+
+                <div className="text-center text-sm text-muted-foreground">
+                  Don't have an account?{" "}
+                  <button
+                    type="button"
+                    className="text-primary hover:underline font-medium"
+                    onClick={() => setLocation("/signup")}
+                    data-testid="link-signup"
+                  >
+                    Sign up
+                  </button>
+                </div>
+              </div>
+            </form>
+          </Form>
         </CardContent>
       </Card>
 

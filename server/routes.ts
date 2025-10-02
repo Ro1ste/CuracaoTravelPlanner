@@ -41,7 +41,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
 
   // ========== AUTHENTICATION ROUTES ==========
-  // All authentication is handled by Replit OAuth in replitAuth.ts
+  
+  // Company signup
+  app.post('/api/auth/signup', async (req, res) => {
+    try {
+      const data = companySignupSchema.parse(req.body);
+      
+      // Check if email already exists
+      const existingUser = await storage.getUserByEmail(data.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(data.password, 10);
+
+      // Create user
+      const userId = nanoid();
+      const user = await storage.upsertUser({
+        id: userId,
+        email: data.email,
+        password: hashedPassword,
+        firstName: data.contactPersonName.split(' ')[0],
+        lastName: data.contactPersonName.split(' ').slice(1).join(' ') || '',
+        isAdmin: false,
+      });
+
+      // Create company profile
+      await storage.createCompany({
+        name: data.companyName,
+        contactPersonName: data.contactPersonName,
+        email: data.email,
+        phone: data.phone,
+        userId: user.id,
+      });
+
+      res.status(201).json({ success: true, message: "Account created successfully" });
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      res.status(400).json({ message: error.message || "Failed to create account" });
+    }
+  });
+
+  // Company login
+  app.post('/api/auth/login', async (req, res) => {
+    try {
+      const data = companyLoginSchema.parse(req.body);
+      
+      // Find user by email
+      const user = await storage.getUserByEmail(data.email);
+      if (!user || !user.password) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      // Verify password
+      const isValidPassword = await bcrypt.compare(data.password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      // Set session with user object (compatible with Passport serialization)
+      const authUser = {
+        claims: { sub: user.id },
+        expires_at: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60), // 1 week
+        email: user.email,
+        id: user.id
+      };
+      
+      req.login(authUser, (err: any) => {
+        if (err) {
+          console.error("Login session error:", err);
+          return res.status(500).json({ message: "Login failed" });
+        }
+        res.json({ success: true, message: "Login successful" });
+      });
+    } catch (error: any) {
+      console.error("Login error:", error);
+      res.status(400).json({ message: error.message || "Login failed" });
+    }
+  });
 
   // Get current user
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
