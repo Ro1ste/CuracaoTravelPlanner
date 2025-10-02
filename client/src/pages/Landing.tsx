@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Award, Users, Calendar, BarChart3, ArrowRight, CheckCircle } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { DemoLoginForm } from "@/components/DemoLoginForm";
 import fddkLogo from "@assets/FDDK_1759241722627.png";
 import fitnessBackground from "@assets/stock_images/man_and_woman_doing__cb8dae4c.jpg";
 import { useLocation } from "wouter";
@@ -134,13 +133,6 @@ export function Landing() {
                   Sign In
                 </Button>
               </div>
-              
-              {isDevMode && (
-                <div className="pt-4 border-t w-full max-w-md">
-                  <p className="text-sm text-muted-foreground text-center mb-3">Dev Mode - Quick Login</p>
-                  <DemoLoginForm />
-                </div>
-              )}
             </div>
           </div>
         </div>
