@@ -1,3 +1,5 @@
+import nodemailer from 'nodemailer';
+
 export interface EmailOptions {
   to: string;
   subject: string;
@@ -7,59 +9,59 @@ export interface EmailOptions {
 }
 
 export class EmailService {
-  private static FROM_EMAIL = 'info@bepartofthemovement.com';
+  private static SMTP_HOST = process.env.SMTP_HOST;
+  private static SMTP_PORT = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : undefined;
+  private static SMTP_USER = process.env.SMTP_USER;
+  private static SMTP_PASS = process.env.SMTP_PASS;
+  private static FROM_EMAIL = process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@localhost';
+
+  private static ensureConfigured(): void {
+    if (!this.SMTP_HOST || !this.SMTP_PORT || !this.SMTP_USER || !this.SMTP_PASS) {
+      throw new Error('SMTP not configured. Please set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS (and optionally SMTP_FROM) in .env');
+    }
+  }
 
   static async sendEmail(options: EmailOptions): Promise<void> {
-    try {
-      let htmlContent = options.html || `<p>${options.text}</p>`;
-      
-      if (options.qrCodeDataUrl) {
-        htmlContent += `
-          <div style="margin-top: 20px; text-align: center;">
-            <h3>Your Event QR Code</h3>
-            <img src="${options.qrCodeDataUrl}" alt="QR Code" style="max-width: 300px;" />
-            <p style="margin-top: 10px; font-size: 12px; color: #666;">
-              Present this QR code at the event for check-in
-            </p>
-          </div>
-        `;
-      }
+    this.ensureConfigured();
 
-      // Simple email logging system - no actual email sending
-      const emailData = {
-        from: this.FROM_EMAIL,
-        to: options.to,
-        subject: options.subject,
-        text: options.text,
-        html: htmlContent,
-        hasQRCode: !!options.qrCodeDataUrl,
-        timestamp: new Date().toISOString()
-      };
+    const transporter = nodemailer.createTransport({
+      host: this.SMTP_HOST,
+      port: this.SMTP_PORT!,
+      secure: this.SMTP_PORT === 465, // true for 465, false for others
+      auth: {
+        user: this.SMTP_USER!,
+        pass: this.SMTP_PASS!,
+      },
+    });
 
-      console.log('📧 EMAIL SENT (Mock):', {
-        to: emailData.to,
-        subject: emailData.subject,
-        hasQRCode: emailData.hasQRCode,
-        timestamp: emailData.timestamp
-      });
+    let htmlContent = options.html || `<p>${options.text}</p>`;
 
-      // Log the full email content for debugging
-      console.log('📧 Email Content:', {
-        from: emailData.from,
-        to: emailData.to,
-        subject: emailData.subject,
-        text: emailData.text,
-        htmlLength: emailData.html.length,
-        qrCodeIncluded: emailData.hasQRCode
-      });
-
-      // Simulate successful email sending
-      console.log('✅ Email sent successfully (Mock Mode)');
-      
-    } catch (error) {
-      console.error('Error in email service:', error);
-      throw error;
+    if (options.qrCodeDataUrl) {
+      htmlContent += `
+        <div style="margin-top: 20px; text-align: center;">
+          <h3>Your Event QR Code</h3>
+          <img src="${options.qrCodeDataUrl}" alt="QR Code" style="max-width: 300px;" />
+          <p style="margin-top: 10px; font-size: 12px; color: #666;">
+            Present this QR code at the event for check-in
+          </p>
+        </div>
+      `;
     }
+
+    await transporter.sendMail({
+      from: this.FROM_EMAIL,
+      to: options.to,
+      subject: options.subject,
+      text: options.text,
+      html: htmlContent,
+    });
+
+    console.log('✅ Email sent via SMTP', {
+      to: options.to,
+      subject: options.subject,
+      hasQRCode: !!options.qrCodeDataUrl,
+      timestamp: new Date().toISOString(),
+    });
   }
 
   static getDefaultTemplate(eventTitle: string, attendeeName: string): { subject: string; text: string } {
