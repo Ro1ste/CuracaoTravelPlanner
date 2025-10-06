@@ -11,8 +11,7 @@ import {
   companySignupSchema,
   companyLoginSchema
 } from "@shared/schema";
-import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
-import { ObjectPermission } from "./objectAcl";
+import { SupabaseObjectStorageService } from "./supabaseObjectStorage";
 import { QRCodeService } from "./qrService";
 import { EmailService } from "./emailService";
 import bcrypt from "bcrypt";
@@ -328,7 +327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Normalize all object storage paths with ACL policies
-      const objectStorageService = new ObjectStorageService();
+      const objectStorageService = new SupabaseObjectStorageService();
       const normalizedUrls = await Promise.all(
         proofData.contentUrls.map(url => 
           objectStorageService.trySetObjectEntityAclPolicy(url, {
@@ -563,7 +562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get upload URL for proof content
   app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
     try {
-      const objectStorageService = new ObjectStorageService();
+      const objectStorageService = new SupabaseObjectStorageService();
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
       res.json({ uploadURL });
     } catch (error) {
@@ -576,25 +575,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/objects/:objectPath(*)", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.claims?.sub;
-      const objectStorageService = new ObjectStorageService();
-      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      const objectStorageService = new SupabaseObjectStorageService();
+      const objectPath = req.params.objectPath;
       
       const canAccess = await objectStorageService.canAccessObjectEntity({
-        objectFile,
         userId: userId,
-        requestedPermission: ObjectPermission.READ,
+        objectFile: objectPath,
+        requestedPermission: "read",
       });
       
       if (!canAccess) {
         return res.sendStatus(403);
       }
       
-      objectStorageService.downloadObject(objectFile, res);
+      await objectStorageService.downloadObject(objectPath, res);
     } catch (error) {
       console.error("Error accessing object:", error);
-      if (error instanceof ObjectNotFoundError) {
-        return res.sendStatus(404);
-      }
       return res.sendStatus(500);
     }
   });

@@ -8,8 +8,8 @@ import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 
-// Production mode - require Replit configuration
-if (!process.env.REPLIT_DOMAINS) {
+// Production mode - require Replit configuration (only in production)
+if (process.env.NODE_ENV === 'production' && !process.env.REPLIT_DOMAINS) {
   throw new Error("Environment variable REPLIT_DOMAINS is required for production deployment");
 }
 
