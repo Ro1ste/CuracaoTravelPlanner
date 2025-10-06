@@ -170,7 +170,7 @@ export default function CompanyLogin() {
         <div className="container mx-auto px-6 py-4">
           <div className="text-center">
             <p className="text-xs text-muted-foreground" data-testid="footer-text">
-              Corporate Wellness Platform powered by <span className="font-semibold text-foreground">Velitt</span>, <span className="font-semibold text-foreground">Digital Adventures</span> and <span className="font-semibold text-foreground">FDDK</span>
+              Curacao International Sports Week - Corporate Wellness Platform powered by <span className="font-semibold text-foreground">Velitt</span>, <span className="font-semibold text-foreground">Digital Adventures</span> and <span className="font-semibold text-foreground">FDDK</span>
             </p>
           </div>
         </div>

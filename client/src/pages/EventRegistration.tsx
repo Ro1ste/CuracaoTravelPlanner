@@ -8,7 +8,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useRoute } from "wouter";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import type { Event } from "@shared/schema";
-import fddkLogo from "@assets/FDDK_1759241722627.png";
+import eiswLogo from "@/assets/eisw-logo.jpeg";
 
 export function EventRegistration() {
   const { toast } = useToast();
@@ -103,15 +103,16 @@ export function EventRegistration() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img 
-                src={fddkLogo} 
-                alt="FDDK Logo" 
+                src={eiswLogo} 
+                alt="EISW Logo" 
                 className="h-16 w-auto"
-                data-testid="logo-fddk"
+                data-testid="logo-eisw"
               />
               <div className="border-l pl-3">
                 <h1 className="font-semibold text-base" data-testid="nav-title">
                   Event Registration
                 </h1>
+                <p className="text-xs text-muted-foreground">Curacao International Sports Week</p>
               </div>
             </div>
             <ThemeToggle />

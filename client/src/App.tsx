@@ -101,8 +101,9 @@ function AuthenticatedApp() {
               <SidebarTrigger data-testid="button-sidebar-toggle" />
               <div>
                 <h2 className="font-semibold text-lg" data-testid="app-title">
-                  Corporate Wellness Platform
+                  Curacao International Sports Week
                 </h2>
+                <p className="text-xs text-muted-foreground">Corporate Wellness Platform</p>
                 <p className="text-sm text-muted-foreground" data-testid="user-info">
                   Welcome back, {user?.firstName || user?.email || 'User'}
                 </p>

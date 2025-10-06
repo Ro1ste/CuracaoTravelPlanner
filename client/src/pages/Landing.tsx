@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Award, Users, Calendar, BarChart3, ArrowRight, CheckCircle } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import fddkLogo from "@assets/FDDK_1759241722627.png";
+import eiswLogo from "@/assets/eisw-logo.jpeg";
 import fitnessBackground from "@assets/stock_images/man_and_woman_doing__cb8dae4c.jpg";
 import { useLocation } from "wouter";
 
@@ -59,15 +59,16 @@ export function Landing() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img 
-                src={fddkLogo} 
-                alt="FDDK Logo" 
+                src={eiswLogo} 
+                alt="EISW Logo" 
                 className="h-24 w-auto"
-                data-testid="logo-fddk"
+                data-testid="logo-eisw"
               />
               <div className="border-l pl-3">
                 <h1 className="font-semibold text-lg" data-testid="nav-title">
-                  Corporate Wellness Platform
+                  Curacao International Sports Week
                 </h1>
+                <p className="text-sm text-muted-foreground">Corporate Wellness Platform</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -218,10 +219,10 @@ export function Landing() {
         <div className="container mx-auto px-6 py-8">
           <div className="text-center space-y-2">
             <p className="text-sm text-muted-foreground" data-testid="footer-text">
-              Corporate Wellness Platform powered by <span className="font-semibold text-foreground">Velitt</span>, <span className="font-semibold text-foreground">Digital Adventures</span> and <span className="font-semibold text-foreground">FDDK</span>
+              Curacao International Sports Week - Corporate Wellness Platform powered by <span className="font-semibold text-foreground">Velitt</span>, <span className="font-semibold text-foreground">Digital Adventures</span> and <span className="font-semibold text-foreground">FDDK</span>
             </p>
             <p className="text-xs text-muted-foreground">
-              © 2024 FDDK. All rights reserved.
+              © 2024 Curacao International Sports Week. All rights reserved.
             </p>
           </div>
         </div>

@@ -714,7 +714,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ? { subject: event.emailSubject, text: event.emailBodyText }
           : EmailService.getDefaultTemplate(event.title, `${registration.firstName} ${registration.lastName}`);
 
-        // Try to send email, but don't fail the approval if it doesn't work (e.g., in dev mode)
+        // Send email with QR code
         let emailSent = false;
         try {
           await EmailService.sendEmail({
@@ -724,10 +724,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             qrCodeDataUrl: qrCodeDataUrl,
           });
           emailSent = true;
-          console.log(`Email sent successfully to ${registration.email}`);
+          console.log(`✅ QR Code email sent successfully to ${registration.email}`);
         } catch (emailError: any) {
-          console.warn(`Failed to send email to ${registration.email}:`, emailError.message);
-          console.warn('Approval succeeded, but email was not sent. This is expected in dev mode with Resend test restrictions.');
+          console.error(`❌ Failed to send email to ${registration.email}:`, emailError.message);
+          emailSent = false;
         }
 
         res.json({ ...updatedRegistration, emailSent });

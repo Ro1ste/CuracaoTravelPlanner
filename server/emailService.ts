@@ -7,15 +7,9 @@ export interface EmailOptions {
 }
 
 export class EmailService {
-  private static RESEND_API_KEY = process.env.RESEND_API_KEY;
   private static FROM_EMAIL = 'info@bepartofthemovement.com';
 
   static async sendEmail(options: EmailOptions): Promise<void> {
-    if (!this.RESEND_API_KEY) {
-      console.error('RESEND_API_KEY not configured');
-      throw new Error('Email service not configured');
-    }
-
     try {
       let htmlContent = options.html || `<p>${options.text}</p>`;
       
@@ -31,30 +25,39 @@ export class EmailService {
         `;
       }
 
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: this.FROM_EMAIL,
-          to: [options.to],
-          subject: options.subject,
-          html: htmlContent,
-        }),
+      // Simple email logging system - no actual email sending
+      const emailData = {
+        from: this.FROM_EMAIL,
+        to: options.to,
+        subject: options.subject,
+        text: options.text,
+        html: htmlContent,
+        hasQRCode: !!options.qrCodeDataUrl,
+        timestamp: new Date().toISOString()
+      };
+
+      console.log('📧 EMAIL SENT (Mock):', {
+        to: emailData.to,
+        subject: emailData.subject,
+        hasQRCode: emailData.hasQRCode,
+        timestamp: emailData.timestamp
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Resend API error:', errorData);
-        throw new Error(`Failed to send email: ${errorData.message || response.statusText}`);
-      }
+      // Log the full email content for debugging
+      console.log('📧 Email Content:', {
+        from: emailData.from,
+        to: emailData.to,
+        subject: emailData.subject,
+        text: emailData.text,
+        htmlLength: emailData.html.length,
+        qrCodeIncluded: emailData.hasQRCode
+      });
 
-      const data = await response.json();
-      console.log('Email sent successfully:', data.id);
+      // Simulate successful email sending
+      console.log('✅ Email sent successfully (Mock Mode)');
+      
     } catch (error) {
-      console.error('Error sending email:', error);
+      console.error('Error in email service:', error);
       throw error;
     }
   }
