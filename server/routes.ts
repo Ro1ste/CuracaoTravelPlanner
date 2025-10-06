@@ -629,7 +629,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(event);
     } catch (error) {
       console.error("Error creating event:", error);
-      res.status(500).json({ message: "Failed to create event" });
+      const err: any = error;
+      res.status(500).json({ 
+        message: "Failed to create event", 
+        error: err?.message || String(err),
+        stack: process.env.NODE_ENV === 'development' ? err?.stack : undefined
+      });
     }
   });
 

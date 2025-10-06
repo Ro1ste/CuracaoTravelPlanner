@@ -1,16 +1,17 @@
+import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
 
-// Supabase configuration
-const supabaseUrl = process.env.SUPABASE_URL || 'https://bdfyyeuucanzdziikdma.supabase.co';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkZnl5ZXV1Y2FuemR6aWlrZG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3MTc3OTksImV4cCI6MjA3NTI5Mzc5OX0.rKifnI2jLXBnwHQy4sMk5tTLtOzx2_zLfsSQ6FbcLzU';
+// Supabase configuration (prefer server env, fallback to VITE_)
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
 // Check if Supabase is properly configured
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('⚠️  SUPABASE_URL and SUPABASE_ANON_KEY environment variables are required');
   console.warn('   Current values:', { 
-    SUPABASE_URL: process.env.SUPABASE_URL || 'not set',
-    SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY ? 'set' : 'not set'
+    SUPABASE_URL: supabaseUrl ? 'set' : 'not set',
+    SUPABASE_ANON_KEY: supabaseAnonKey ? 'set' : 'not set'
   });
 }
 
@@ -26,49 +27,12 @@ export class SupabaseObjectStorageService {
   }
 
   private async initializeBucket() {
-    try {
-      const { data, error } = await supabase.storage.getBucket(this.bucketName);
-      if (error && error.message.includes('not found')) {
-        // Create bucket if it doesn't exist
-        const { error: createError } = await supabase.storage.createBucket(this.bucketName, {
-          public: false, // Private bucket for proof uploads
-          fileSizeLimit: 50 * 1024 * 1024, // 50MB limit
-        });
-        if (createError) {
-          console.error('Error creating bucket:', createError);
-        } else {
-          console.log('Created Supabase bucket:', this.bucketName);
-        }
-      }
-    } catch (error) {
-      console.error('Error initializing bucket:', error);
-    }
+    // With anon key we cannot create buckets; assume created via SQL editor.
+    try { await supabase.storage.getBucket(this.bucketName); } catch (_) {}
   }
 
   // Get upload URL for proof content
-  async getObjectEntityUploadURL(): Promise<string> {
-    const objectId = randomUUID();
-    const fileName = `proofs/${objectId}`;
-    
-    try {
-      // For Supabase, we'll return a direct upload URL
-      // The client will upload directly to Supabase
-      const { data, error } = await supabase.storage
-        .from(this.bucketName)
-        .createSignedUploadUrl(fileName, {
-          expiresIn: 900, // 15 minutes
-        });
-
-      if (error) {
-        throw new Error(`Failed to create upload URL: ${error.message}`);
-      }
-
-      return data.signedUrl;
-    } catch (error) {
-      console.error('Error creating upload URL:', error);
-      throw error;
-    }
-  }
+  async getObjectEntityUploadURL(): Promise<string> { return ''; }
 
   // Normalize object path for Supabase storage
   normalizeObjectEntityPath(rawPath: string): string {

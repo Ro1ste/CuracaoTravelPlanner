@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import nodemailer from 'nodemailer';
 
 export interface EmailOptions {
@@ -9,11 +10,12 @@ export interface EmailOptions {
 }
 
 export class EmailService {
-  private static SMTP_HOST = process.env.SMTP_HOST;
-  private static SMTP_PORT = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : undefined;
-  private static SMTP_USER = process.env.SMTP_USER;
-  private static SMTP_PASS = process.env.SMTP_PASS;
-  private static FROM_EMAIL = process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@localhost';
+  // Prefer server-side envs; fall back to VITE_ for compatibility
+  private static SMTP_HOST = process.env.SMTP_HOST || process.env.VITE_SMTP_HOST;
+  private static SMTP_PORT = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : (process.env.VITE_SMTP_PORT ? Number(process.env.VITE_SMTP_PORT) : 587);
+  private static SMTP_USER = process.env.SMTP_USER || process.env.VITE_SMTP_USER;
+  private static SMTP_PASS = process.env.SMTP_PASS || process.env.VITE_SMTP_PASS;
+  private static FROM_EMAIL = process.env.SMTP_FROM || process.env.VITE_SMTP_FROM || process.env.SMTP_USER || process.env.VITE_SMTP_USER || 'no-reply@localhost';
 
   private static ensureConfigured(): void {
     if (!this.SMTP_HOST || !this.SMTP_PORT || !this.SMTP_USER || !this.SMTP_PASS) {
@@ -36,16 +38,36 @@ export class EmailService {
 
     let htmlContent = options.html || `<p>${options.text}</p>`;
 
+    const attachments: { filename: string; content: Buffer; cid: string }[] = [];
+
     if (options.qrCodeDataUrl) {
-      htmlContent += `
-        <div style="margin-top: 20px; text-align: center;">
-          <h3>Your Event QR Code</h3>
-          <img src="${options.qrCodeDataUrl}" alt="QR Code" style="max-width: 300px;" />
-          <p style="margin-top: 10px; font-size: 12px; color: #666;">
-            Present this QR code at the event for check-in
-          </p>
-        </div>
-      `;
+      const match = options.qrCodeDataUrl.match(/^data:image\/(png|jpeg);base64,(.+)$/);
+      if (match) {
+        const mime = match[1];
+        const base64 = match[2];
+        const filename = `qr-code.${mime === 'jpeg' ? 'jpg' : 'png'}`;
+        attachments.push({ filename, content: Buffer.from(base64, 'base64'), cid: 'qr-code' });
+        htmlContent += `
+          <div style="margin-top: 20px; text-align: center;">
+            <h3>Your Event QR Code</h3>
+            <img src="cid:qr-code" alt="QR Code" style="max-width: 300px; display: block; margin: 0 auto;" />
+            <p style="margin-top: 10px; font-size: 12px; color: #;">
+              Present this QR code at the event for check-in
+            </p>
+          </div>
+        `;
+      } else {
+        // Fallback to data URL if parsing failed
+        htmlContent += `
+          <div style="margin-top: 20px; text-align: center;">
+            <h3>Your Event QR Code</h3>
+            <img src="${options.qrCodeDataUrl}" alt="QR Code" style="max-width: 300px;" />
+            <p style="margin-top: 10px; font-size: 12px; color: #666;">
+              Present this QR code at the event for check-in
+            </p>
+          </div>
+        `;
+      }
     }
 
     await transporter.sendMail({
@@ -54,6 +76,7 @@ export class EmailService {
       subject: options.subject,
       text: options.text,
       html: htmlContent,
+      attachments,
     });
 
     console.log('✅ Email sent via SMTP', {

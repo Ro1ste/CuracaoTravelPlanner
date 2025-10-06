@@ -5,6 +5,7 @@ import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import { supabase } from "@/lib/supabase";
 import type { UploadResult } from "@uppy/core";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,26 +67,38 @@ export function ProofSubmissionDialog({
   });
 
   const handleGetUploadParameters = async () => {
-    const response = await apiRequest<{ uploadURL: string }>(
-      "POST",
-      "/api/objects/upload",
-      {}
-    );
-    return {
-      method: "PUT" as const,
-      url: response.uploadURL,
-    };
+    // This function is only used by the Uppy XHRUpload plugin.
+    // We won’t use signed URLs anymore; instead we upload directly with Supabase SDK.
+    // Return a dummy URL; the actual upload happens in handleUploadComplete below.
+    return { method: "PUT" as const, url: "about:blank" };
   };
 
   const handleUploadComplete = async (
-    result: UploadResult<Record<string, unknown>, Record<string, unknown>>
+    result: UploadResult<Record<string, any>, Record<string, any>>
   ) => {
-    if (result.successful.length > 0) {
-      const newUrls = result.successful.map(file => file.uploadURL).filter(Boolean) as string[];
-      setUploadedUrls(prev => [...prev, ...newUrls]);
+    if (result.successful.length === 0) return;
+
+    // Upload each selected file directly to Supabase Storage using anon key
+    const uploadedPaths: string[] = [];
+    for (const file of result.successful) {
+      const original = file.data as File;
+      const ext = original.name.split('.').pop() || 'bin';
+      const path = `proofs/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { data, error } = await supabase.storage
+        .from('proof-uploads')
+        .upload(path, original, { upsert: false });
+      if (error) {
+        toast({ title: 'Upload failed', description: error.message, variant: 'destructive' });
+        continue;
+      }
+      uploadedPaths.push(data.path);
+    }
+
+    if (uploadedPaths.length > 0) {
+      setUploadedUrls(prev => [...prev, ...uploadedPaths]);
       toast({
-        title: `${newUrls.length} file(s) uploaded!`,
-        description: `You have ${uploadedUrls.length + newUrls.length} file(s) total. Minimum 6 required.`,
+        title: `${uploadedPaths.length} file(s) uploaded!`,
+        description: `You have ${uploadedUrls.length + uploadedPaths.length} file(s) total. Minimum 6 required.`,
       });
     }
   };

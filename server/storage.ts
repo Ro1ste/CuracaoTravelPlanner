@@ -302,8 +302,18 @@ export class DatabaseStorage implements IStorage {
   async createEvent(eventData: InsertEvent & { shortCode?: string }): Promise<Event> {
     const db = await this.getDb();
     
+    // Normalize incoming values to satisfy DB constraints/types
+    const normalized: any = { ...eventData };
+    if (typeof (normalized as any).eventDate === 'string') {
+      normalized.eventDate = new Date((normalized as any).eventDate);
+    }
+    if (normalized.youtubeUrl === '') normalized.youtubeUrl = null;
+    if (normalized.description === undefined) normalized.description = null;
+    if (normalized.emailSubject === undefined) normalized.emailSubject = null;
+    if (normalized.emailBodyText === undefined) normalized.emailBodyText = null;
+
     // Generate unique short code with retry logic
-    let shortCode = eventData.shortCode;
+    let shortCode = normalized.shortCode;
     if (!shortCode) {
       const { nanoid } = await import('nanoid');
       let attempts = 0;
@@ -318,7 +328,7 @@ export class DatabaseStorage implements IStorage {
       }
     }
     
-    const [event] = await db.insert(events).values({ ...eventData, shortCode }).returning();
+    const [event] = await db.insert(events).values({ ...normalized, shortCode }).returning();
     return event;
   }
 
