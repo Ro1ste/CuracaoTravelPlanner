@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Medal, Award, Flame } from "lucide-react";
+import { Trophy, Medal, Award, Flame, Crown } from "lucide-react";
+import { WinnerCelebration } from "@/components/WinnerCelebration";
+import { useState } from "react";
 
 interface LeaderboardEntry {
   id: string;
@@ -14,6 +16,9 @@ export function CompanyLeaderboard() {
   const { data: leaderboard, isLoading } = useQuery<LeaderboardEntry[]>({
     queryKey: ["/api/leaderboard"],
   });
+  
+  const [showWinnerCelebration, setShowWinnerCelebration] = useState(false);
+  const [winnerCompany, setWinnerCompany] = useState<LeaderboardEntry | null>(null);
 
   if (isLoading) {
     return (
@@ -24,10 +29,17 @@ export function CompanyLeaderboard() {
   }
 
   const getRankIcon = (rank: number) => {
-    if (rank === 1) return <Trophy className="h-6 w-6 text-yellow-500" />;
+    if (rank === 1) return <Crown className="h-6 w-6 text-yellow-500" />;
     if (rank === 2) return <Medal className="h-6 w-6 text-gray-400" />;
     if (rank === 3) return <Award className="h-6 w-6 text-amber-600" />;
     return null;
+  };
+
+  const handleWinnerClick = (entry: LeaderboardEntry) => {
+    if (entry.rank === 1) {
+      setWinnerCompany(entry);
+      setShowWinnerCelebration(true);
+    }
   };
 
   return (
@@ -52,8 +64,11 @@ export function CompanyLeaderboard() {
               leaderboard.map((entry) => (
                 <div
                   key={entry.id}
-                  className="flex items-center justify-between p-4 rounded-lg border bg-card hover-elevate"
+                  className={`flex items-center justify-between p-4 rounded-lg border bg-card hover-elevate ${
+                    entry.rank === 1 ? 'cursor-pointer border-yellow-300 bg-gradient-to-r from-yellow-50 to-orange-50' : ''
+                  }`}
                   data-testid={`leaderboard-entry-${entry.rank}`}
+                  onClick={() => handleWinnerClick(entry)}
                 >
                   <div className="flex items-center gap-4">
                     <div className="flex items-center justify-center w-12 h-12 rounded-full bg-muted">
@@ -99,6 +114,15 @@ export function CompanyLeaderboard() {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Winner Celebration Modal */}
+      {winnerCompany && (
+        <WinnerCelebration
+          isOpen={showWinnerCelebration}
+          onClose={() => setShowWinnerCelebration(false)}
+          winnerCompany={winnerCompany}
+        />
+      )}
     </div>
   );
 }

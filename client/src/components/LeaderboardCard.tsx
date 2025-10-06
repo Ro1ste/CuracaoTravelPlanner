@@ -1,7 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Trophy, Medal, Award } from "lucide-react";
+import { Trophy, Medal, Award, Crown } from "lucide-react";
+import { WinnerCelebration } from "@/components/WinnerCelebration";
+import { useState } from "react";
 
 interface LeaderboardEntry {
   id: string;
@@ -24,16 +26,25 @@ export function LeaderboardCard({
   showFullRanking = false,
   onViewAll 
 }: LeaderboardCardProps) {
+  const [showWinnerCelebration, setShowWinnerCelebration] = useState(false);
+  const [winnerCompany, setWinnerCompany] = useState<LeaderboardEntry | null>(null);
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
-        return <Trophy className="h-4 w-4 text-yellow-500" />;
+        return <Crown className="h-4 w-4 text-yellow-500" />;
       case 2:
         return <Medal className="h-4 w-4 text-gray-400" />;
       case 3:
         return <Award className="h-4 w-4 text-amber-600" />;
       default:
         return <span className="text-sm font-bold text-muted-foreground">#{rank}</span>;
+    }
+  };
+
+  const handleWinnerClick = (entry: LeaderboardEntry) => {
+    if (entry.rank === 1) {
+      setWinnerCompany(entry);
+      setShowWinnerCelebration(true);
     }
   };
 
@@ -59,8 +70,11 @@ export function LeaderboardCard({
         {displayEntries.map((entry) => (
           <div 
             key={entry.id}
-            className="flex items-center justify-between p-3 rounded-lg hover-elevate"
+            className={`flex items-center justify-between p-3 rounded-lg hover-elevate ${
+              entry.rank === 1 ? 'cursor-pointer border border-yellow-300 bg-gradient-to-r from-yellow-50 to-orange-50' : ''
+            }`}
             data-testid={`leaderboard-entry-${entry.rank}`}
+            onClick={() => handleWinnerClick(entry)}
           >
             <div className="flex items-center space-x-3">
               <div className="flex items-center justify-center w-8">
@@ -91,6 +105,19 @@ export function LeaderboardCard({
           </div>
         )}
       </CardContent>
+      
+      {/* Winner Celebration Modal */}
+      {winnerCompany && (
+        <WinnerCelebration
+          isOpen={showWinnerCelebration}
+          onClose={() => setShowWinnerCelebration(false)}
+          winnerCompany={{
+            name: winnerCompany.name,
+            points: winnerCompany.points || 0,
+            rank: winnerCompany.rank
+          }}
+        />
+      )}
     </Card>
   );
 }
