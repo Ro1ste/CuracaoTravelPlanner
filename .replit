@@ -7,10 +7,9 @@ channel = "stable-24_05"
 packages = ["vim"]
 
 [deployment]
-deploymentTarget = "gce"
+deploymentTarget = "cloudrun"
 build = ["npm", "run", "build"]
 run = ["npm", "run", "start"]
-ignorePorts = true
 
 [[ports]]
 localPort = 5000
