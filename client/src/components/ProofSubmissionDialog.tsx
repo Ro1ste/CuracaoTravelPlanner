@@ -79,22 +79,27 @@ export function ProofSubmissionDialog({
     // Upload each selected file directly to Supabase Storage using anon key
     const uploadedUrls: string[] = [];
     for (const file of files) {
-      const ext = file.name.split('.').pop() || 'bin';
-      const path = `proofs/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { data, error } = await supabase.storage
-        .from('proof-uploads')
-        .upload(path, file, { upsert: false });
-      if (error) {
+      try {
+        const ext = file.name.split('.').pop() || 'bin';
+        const path = `proofs/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { data, error } = await supabase.storage
+          .from('proof-uploads')
+          .upload(path, file, { upsert: false });
+        if (error) {
+          toast({ title: 'Upload failed', description: error.message, variant: 'destructive' });
+          continue;
+        }
+        
+        // Generate the full public URL
+        const publicUrl = supabase.storage
+          .from('proof-uploads')
+          .getPublicUrl(data.path).data.publicUrl;
+        
+        uploadedUrls.push(publicUrl);
+      } catch (error: any) {
         toast({ title: 'Upload failed', description: error.message, variant: 'destructive' });
         continue;
       }
-      
-      // Generate the full public URL
-      const publicUrl = supabase.storage
-        .from('proof-uploads')
-        .getPublicUrl(data.path).data.publicUrl;
-      
-      uploadedUrls.push(publicUrl);
     }
 
     if (uploadedUrls.length > 0) {
