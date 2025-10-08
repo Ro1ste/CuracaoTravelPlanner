@@ -1,10 +1,8 @@
+
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Uppy CSS imports */
-@import '@uppy/core/dist/style.min.css';
-@import '@uppy/dashboard/dist/style.min.css';
 
 /* LIGHT MODE */
 :root {
