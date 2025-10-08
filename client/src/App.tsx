@@ -82,8 +82,28 @@ function AuthenticatedApp() {
   const isAdmin = user?.isAdmin || false;
   const userType = isAdmin ? 'admin' : 'company';
 
-  const handleLogout = () => {
-    window.location.href = "/api/logout";
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        // Clear any cached data
+        queryClient.clear();
+        // Redirect to login page
+        window.location.href = '/login';
+      } else {
+        console.error('Logout failed');
+        // Force redirect anyway
+        window.location.href = '/login';
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force redirect anyway
+      window.location.href = '/login';
+    }
   };
 
   const style = {

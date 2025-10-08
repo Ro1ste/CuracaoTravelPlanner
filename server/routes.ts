@@ -120,6 +120,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Logout
+  app.post('/api/logout', (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        console.error("Logout error:", err);
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Session destroy error:", err);
+          return res.status(500).json({ message: "Logout failed" });
+        }
+        res.clearCookie('connect.sid');
+        res.json({ success: true, message: "Logged out successfully" });
+      });
+    });
+  });
+
   // Get current user
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
