@@ -1,11 +1,8 @@
-// Referenced from blueprint:javascript_object_storage
+// Simple file uploader without Uppy dependencies
 import { useState, useRef } from "react";
 import type { ReactNode } from "react";
-import Uppy from "@uppy/core";
-import { DashboardModal } from "@uppy/react";
-import XHRUpload from "@uppy/xhr-upload";
-import type { UploadResult } from "@uppy/core";
 import { Button } from "@/components/ui/button";
+import { Upload, X } from "lucide-react";
 
 interface ObjectUploaderProps {
   maxNumberOfFiles?: number;
@@ -14,28 +11,21 @@ interface ObjectUploaderProps {
     method: "PUT";
     url: string;
   }>;
-  onComplete?: (
-    result: UploadResult<Record<string, unknown>, Record<string, unknown>>
-  ) => void;
+  onComplete?: (files: File[]) => void;
   buttonClassName?: string;
   buttonVariant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
   children: ReactNode;
 }
 
 /**
- * A file upload component that renders as a button and provides a modal interface for
- * file management.
+ * A simple file upload component with drag-and-drop support.
  * 
  * Features:
- * - Renders as a customizable button that opens a file upload modal
- * - Provides a modal interface for:
- *   - File selection
- *   - File preview
- *   - Upload progress tracking
- *   - Upload status display
- * 
- * The component uses Uppy under the hood to handle all file upload functionality.
- * All file management features are automatically handled by the Uppy dashboard modal.
+ * - Native file input with drag-and-drop
+ * - File validation (size, type, count)
+ * - Visual feedback for drag states
+ * - File preview and removal
+ * - No external dependencies
  */
 export function ObjectUploader({
   maxNumberOfFiles = 1,
@@ -46,84 +36,98 @@ export function ObjectUploader({
   buttonVariant = "default",
   children,
 }: ObjectUploaderProps) {
-  const [showModal, setShowModal] = useState(false);
-  const [useFallback, setUseFallback] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const [uppy] = useState(() =>
-    new Uppy({
-      restrictions: {
-        maxNumberOfFiles,
-        maxFileSize,
-        allowedFileTypes: ['.jpg', '.jpeg', '.png', '.mp4', '.mov'],
-      },
-      autoProceed: false,
-    })
-      .use(XHRUpload, {
-        endpoint: "placeholder",
-        method: "PUT",
-        getUploadParameters: async (file: any) => {
-          const params = await onGetUploadParameters();
-          return {
-            method: params.method,
-            url: params.url,
-            headers: {},
-          };
-        },
-        getResponseData: (xhr: XMLHttpRequest) => {
-          // GCS signed URLs return empty body or XML, not JSON
-          // Extract the upload URL from the response URL (without query parameters)
-          const uploadUrl = xhr.responseURL.split('?')[0];
-          return {
-            url: uploadUrl,
-          };
-        },
-      })
-      .on("complete", (result) => {
-        onComplete?.(result);
-        // Auto-close modal after upload completes
-        setShowModal(false);
-      })
-  );
 
   const handleButtonClick = () => {
-    console.log('Upload button clicked, opening modal...');
-    if (useFallback) {
-      fileInputRef.current?.click();
-    } else {
-      setShowModal(true);
+    fileInputRef.current?.click();
+  };
+
+  const validateFile = (file: File): string | null => {
+    // Check file size
+    if (file.size > maxFileSize) {
+      return `File ${file.name} is too large. Maximum size is ${Math.round(maxFileSize / 1024 / 1024)}MB`;
     }
+
+    // Check file type
+    const allowedTypes = ['.jpg', '.jpeg', '.png', '.mp4', '.mov'];
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!allowedTypes.includes(fileExtension)) {
+      return `File ${file.name} has an unsupported format. Allowed: ${allowedTypes.join(', ')}`;
+    }
+
+    return null;
   };
 
-  const handleModalClose = () => {
-    console.log('Modal closed');
-    setShowModal(false);
-  };
+  const handleFiles = (files: FileList | null) => {
+    if (!files) return;
 
-  const handleFileInputChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    // Convert FileList to Array and create a mock UploadResult
     const fileArray = Array.from(files);
-    const successful = fileArray.map(file => ({ data: file }));
-    
-    const mockResult: UploadResult<Record<string, any>, Record<string, any>> = {
-      successful,
-      failed: [],
-      total: fileArray.length,
-    };
+    const validFiles: File[] = [];
+    const errors: string[] = [];
 
-    onComplete?.(mockResult);
-    
-    // Reset the input
+    // Validate each file
+    fileArray.forEach(file => {
+      const error = validateFile(file);
+      if (error) {
+        errors.push(error);
+      } else {
+        validFiles.push(file);
+      }
+    });
+
+    // Show errors if any
+    if (errors.length > 0) {
+      alert(errors.join('\n'));
+    }
+
+    // Check total file count
+    const totalFiles = selectedFiles.length + validFiles.length;
+    if (totalFiles > maxNumberOfFiles) {
+      alert(`Maximum ${maxNumberOfFiles} files allowed. You selected ${totalFiles} files.`);
+      return;
+    }
+
+    // Add valid files
+    const newFiles = [...selectedFiles, ...validFiles];
+    setSelectedFiles(newFiles);
+    onComplete?.(newFiles);
+  };
+
+  const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    handleFiles(event.target.files);
+    // Reset input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragOver(false);
+    handleFiles(event.dataTransfer.files);
+  };
+
+  const removeFile = (index: number) => {
+    const newFiles = selectedFiles.filter((_, i) => i !== index);
+    setSelectedFiles(newFiles);
+    onComplete?.(newFiles);
+  };
+
   return (
-    <div>
+    <div className="space-y-4">
+      {/* Upload Button */}
       <Button 
         onClick={handleButtonClick} 
         className={buttonClassName}
@@ -133,7 +137,7 @@ export function ObjectUploader({
         {children}
       </Button>
 
-      {/* Fallback file input */}
+      {/* Hidden file input */}
       <input
         ref={fileInputRef}
         type="file"
@@ -143,27 +147,50 @@ export function ObjectUploader({
         style={{ display: 'none' }}
       />
 
-      {/* Uppy Modal */}
-      {showModal && (
-        <DashboardModal
-          uppy={uppy}
-          open={showModal}
-          onRequestClose={handleModalClose}
-          proudlyDisplayPoweredByUppy={false}
-          closeModalOnClickOutside={true}
-        />
-      )}
+      {/* Drag and Drop Area */}
+      <div
+        className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+          isDragOver 
+            ? 'border-primary bg-primary/5' 
+            : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+        }`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">
+          Drag and drop files here, or click the button above
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          Max {maxNumberOfFiles} file(s), {Math.round(maxFileSize / 1024 / 1024)}MB each
+        </p>
+      </div>
 
-      {/* Debug button to switch to fallback */}
-      {process.env.NODE_ENV === 'development' && (
-        <Button
-          onClick={() => setUseFallback(!useFallback)}
-          variant="ghost"
-          size="sm"
-          className="ml-2 text-xs"
-        >
-          {useFallback ? 'Use Uppy' : 'Use Fallback'}
-        </Button>
+      {/* Selected Files */}
+      {selectedFiles.length > 0 && (
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium">Selected Files:</h4>
+          {selectedFiles.map((file, index) => (
+            <div key={index} className="flex items-center justify-between p-2 border rounded">
+              <div className="flex items-center gap-2">
+                <Upload className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">{file.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  ({Math.round(file.size / 1024)}KB)
+                </span>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => removeFile(index)}
+                className="h-6 w-6 p-0"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
