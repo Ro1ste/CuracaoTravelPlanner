@@ -702,6 +702,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user's own registration for an event
+  app.get('/api/events/:id/my-registration', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !user.email) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const registrations = await storage.getEventRegistrations(req.params.id);
+      const userRegistration = registrations.find(reg => reg.email === user.email);
+      
+      if (!userRegistration) {
+        return res.status(404).json({ message: "Not registered for this event" });
+      }
+
+      res.json(userRegistration);
+    } catch (error) {
+      console.error("Error fetching user registration:", error);
+      res.status(500).json({ message: "Failed to fetch registration" });
+    }
+  });
+
   // Approve/Reject registration and send QR code (admin only)
   app.patch('/api/events/:eventId/registrations/:id', isAuthenticated, isAdmin, async (req, res) => {
     try {

@@ -1,17 +1,21 @@
 import { EventRegistrationForm } from "@/components/EventRegistrationForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar, MapPin, CheckCircle, Clock, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import type { Event } from "@shared/schema";
+import { useAuth } from "@/hooks/useAuth";
+import type { Event, EventRegistration } from "@shared/schema";
 import eiswLogo from "@/assets/eisw-logo.jpeg";
 
 export function EventRegistration() {
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
   
   // Try to match both short code and event ID routes
   const [matchShort, paramsShort] = useRoute("/e/:shortCode");
@@ -31,6 +35,27 @@ export function EventRegistration() {
     : eventId
     ? events.find(e => e.id === eventId)
     : events[0];
+
+  // Check if user is already registered for this event
+  const { data: existingRegistration } = useQuery<EventRegistration | null>({
+    queryKey: ['/api/events', event?.id, 'my-registration'],
+    queryFn: async () => {
+      if (!event?.id || !isAuthenticated || !user?.email) return null;
+      
+      try {
+        const res = await fetch(`/api/events/${event.id}/my-registration`, {
+          credentials: 'include'
+        });
+        if (res.ok) {
+          return await res.json();
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!event?.id && isAuthenticated && !!user?.email,
+  });
 
   const registerMutation = useMutation({
     mutationFn: async (data: {
@@ -91,6 +116,102 @@ export function EventRegistration() {
             </p>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  // If user is authenticated and already registered, show registration status
+  if (isAuthenticated && existingRegistration) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
+        <div className="w-full max-w-2xl space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <img src={eiswLogo} alt="EISW Logo" className="h-12 w-12 rounded-lg object-cover" />
+              <div>
+                <h1 className="text-2xl font-bold">Curacao International Sports Week</h1>
+                <p className="text-muted-foreground">Corporate Wellness Platform</p>
+              </div>
+            </div>
+            <ThemeToggle />
+          </div>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                {existingRegistration.status === 'approved' ? (
+                  <CheckCircle className="h-8 w-8 text-green-500" />
+                ) : (
+                  <Clock className="h-8 w-8 text-yellow-500" />
+                )}
+                <div>
+                  <CardTitle className="text-xl">
+                    {existingRegistration.status === 'approved' ? 'Registration Approved!' : 'Registration Pending'}
+                  </CardTitle>
+                  <CardDescription>
+                    {existingRegistration.status === 'approved' 
+                      ? 'You are successfully registered for this event.'
+                      : 'Your registration is pending approval.'
+                    }
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium">Name:</span>
+                  <p>{existingRegistration.firstName} {existingRegistration.lastName}</p>
+                </div>
+                <div>
+                  <span className="font-medium">Email:</span>
+                  <p>{existingRegistration.email}</p>
+                </div>
+                <div>
+                  <span className="font-medium">Company:</span>
+                  <p>{existingRegistration.companyName}</p>
+                </div>
+                <div>
+                  <span className="font-medium">Status:</span>
+                  <Badge variant={existingRegistration.status === 'approved' ? 'default' : 'secondary'}>
+                    {existingRegistration.status}
+                  </Badge>
+                </div>
+              </div>
+
+              {existingRegistration.status === 'approved' && (
+                <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg">
+                  <h3 className="font-medium text-green-800 dark:text-green-200 mb-2">
+                    🎉 You're all set!
+                  </h3>
+                  <p className="text-sm text-green-700 dark:text-green-300">
+                    You have been approved for this event. You should receive a QR code via email shortly.
+                    If you haven't received it, please check your spam folder or contact the event organizers.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4">
+                <Button 
+                  onClick={() => setLocation('/')}
+                  className="flex-1"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Go to Dashboard
+                </Button>
+                {existingRegistration.status === 'approved' && (
+                  <Button 
+                    variant="outline"
+                    onClick={() => window.open('/events', '_blank')}
+                  >
+                    View All Events
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
