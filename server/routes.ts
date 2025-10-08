@@ -311,6 +311,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/proofs/:id', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const proof = await storage.getProofById(req.params.id);
+      if (!proof) {
+        return res.status(404).json({ message: "Proof not found" });
+      }
+      
+      // Fetch related task and company data
+      const task = await storage.getTaskById(proof.taskId);
+      const company = await storage.getCompanyById(proof.companyId);
+      
+      res.json({
+        ...proof,
+        task,
+        company
+      });
+    } catch (error) {
+      console.error("Error fetching proof:", error);
+      res.status(500).json({ message: "Failed to fetch proof" });
+    }
+  });
+
   app.get('/api/companies/:companyId/proofs', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

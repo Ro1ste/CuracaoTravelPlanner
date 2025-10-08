@@ -23,6 +23,7 @@ import { AttendeesManagement } from "@/pages/AttendeesManagement";
 import CompaniesManagement from "@/pages/CompaniesManagement";
 import AdministratorsManagement from "@/pages/AdministratorsManagement";
 import { TasksManagement } from "@/pages/TasksManagement";
+import { ProofReview } from "@/pages/ProofReview";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -63,6 +64,7 @@ function Router() {
           <Route path="/administrators" component={AdministratorsManagement} />
           <Route path="/events" component={EventsManagement} />
           <Route path="/events/:eventId/attendees" component={AttendeesManagement} />
+          <Route path="/admin/proofs/:proofId" component={ProofReview} />
         </>
       ) : (
         <>

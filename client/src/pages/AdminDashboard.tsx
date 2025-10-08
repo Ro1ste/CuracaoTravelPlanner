@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { StatCard } from "@/components/StatCard";
 import { LeaderboardCard } from "@/components/LeaderboardCard";
 import { TaskCreationDialog } from "@/components/TaskCreationDialog";
-import { ProofReviewDialog } from "@/components/ProofReviewDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,9 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 
 export function AdminDashboard() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [taskCreationOpen, setTaskCreationOpen] = useState(false);
-  const [proofReviewOpen, setProofReviewOpen] = useState(false);
-  const [selectedProof, setSelectedProof] = useState<(TaskProof & { task?: Task; company?: Company }) | null>(null);
 
   // Fetch companies
   const { data: companies } = useQuery<Company[]>({
@@ -47,16 +46,8 @@ export function AdminDashboard() {
   const pendingProofsCount = pendingProofs?.length || 0;
   const totalTasks = tasks?.length || 0;
 
-  const handleReviewProof = async (proofId: string) => {
-    const proof = pendingProofs?.find(p => p.id === proofId);
-    if (!proof) return;
-
-    // Fetch related task and company data
-    const task = tasks?.find(t => t.id === proof.taskId);
-    const company = companies?.find(c => c.id === proof.companyId);
-
-    setSelectedProof({ ...proof, task, company });
-    setProofReviewOpen(true);
+  const handleReviewProof = (proofId: string) => {
+    setLocation(`/admin/proofs/${proofId}`);
   };
 
   const handleViewCompanies = () => {
@@ -224,13 +215,6 @@ export function AdminDashboard() {
         onOpenChange={setTaskCreationOpen}
       />
 
-      {selectedProof && (
-        <ProofReviewDialog
-          proof={selectedProof}
-          open={proofReviewOpen}
-          onOpenChange={setProofReviewOpen}
-        />
-      )}
     </div>
   );
 }
