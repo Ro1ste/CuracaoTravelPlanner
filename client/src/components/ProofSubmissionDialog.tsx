@@ -77,7 +77,7 @@ export function ProofSubmissionDialog({
     if (files.length === 0) return;
 
     // Upload each selected file directly to Supabase Storage using anon key
-    const uploadedPaths: string[] = [];
+    const uploadedUrls: string[] = [];
     for (const file of files) {
       const ext = file.name.split('.').pop() || 'bin';
       const path = `proofs/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
@@ -88,14 +88,23 @@ export function ProofSubmissionDialog({
         toast({ title: 'Upload failed', description: error.message, variant: 'destructive' });
         continue;
       }
-      uploadedPaths.push(data.path);
+      
+      // Generate the full public URL
+      const publicUrl = supabase.storage
+        .from('proof-uploads')
+        .getPublicUrl(data.path).data.publicUrl;
+      
+      uploadedUrls.push(publicUrl);
     }
 
-    if (uploadedPaths.length > 0) {
-      setUploadedUrls(prev => [...prev, ...uploadedPaths]);
-      toast({
-        title: `${uploadedPaths.length} file(s) uploaded!`,
-        description: `You have ${uploadedUrls.length + uploadedPaths.length} file(s) total. Minimum 6 required.`,
+    if (uploadedUrls.length > 0) {
+      setUploadedUrls(prev => {
+        const newUrls = [...prev, ...uploadedUrls];
+        toast({
+          title: `${uploadedUrls.length} file(s) uploaded!`,
+          description: `You have ${newUrls.length} file(s) total. Minimum 6 required.`,
+        });
+        return newUrls;
       });
     }
   };
