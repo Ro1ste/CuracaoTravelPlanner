@@ -26,6 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, XCircle, ExternalLink, Image as ImageIcon, Play } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 interface ProofReviewDialogProps {
   proof: TaskProof & { task?: Task; company?: Company };
@@ -40,6 +41,19 @@ export function ProofReviewDialog({
 }: ProofReviewDialogProps) {
   const { toast } = useToast();
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
+
+  // Convert path to full URL if needed
+  const getFullUrl = (urlOrPath: string): string => {
+    // If it's already a full URL, return as is
+    if (urlOrPath.startsWith('http')) {
+      return urlOrPath;
+    }
+    // If it's just a path, convert to full Supabase URL
+    const { data } = supabase.storage
+      .from('proof-uploads')
+      .getPublicUrl(urlOrPath);
+    return data.publicUrl;
+  };
 
   const form = useForm<ProofReview>({
     resolver: zodResolver(proofReviewSchema),
@@ -89,7 +103,7 @@ export function ProofReviewDialog({
   };
 
   const contentUrls = proof.contentUrls || [];
-  const selectedUrl = contentUrls[selectedMediaIndex];
+  const selectedUrl = contentUrls[selectedMediaIndex] ? getFullUrl(contentUrls[selectedMediaIndex]) : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -203,7 +217,7 @@ export function ProofReviewDialog({
                   >
                     {proof.contentType === 'image' ? (
                       <img
-                        src={url}
+                        src={getFullUrl(url)}
                         alt={`Thumbnail ${index + 1}`}
                         className="w-full h-full object-cover"
                       />
