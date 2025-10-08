@@ -25,7 +25,9 @@ export function AttendeesManagement() {
   const { data: event } = useQuery<Event>({
     queryKey: ['/api/events', eventId],
     queryFn: async () => {
-      const res = await fetch(`/api/events/${eventId}`);
+      const res = await fetch(`/api/events/${eventId}`, {
+        credentials: 'include'
+      });
       if (!res.ok) throw new Error('Failed to fetch event');
       return res.json();
     },
@@ -34,7 +36,9 @@ export function AttendeesManagement() {
   const { data: attendees = [], isLoading } = useQuery<EventRegistration[]>({
     queryKey: ['/api/events', eventId, 'registrations'],
     queryFn: async () => {
-      const res = await fetch(`/api/events/${eventId}/registrations`);
+      const res = await fetch(`/api/events/${eventId}/registrations`, {
+        credentials: 'include'
+      });
       if (!res.ok) throw new Error('Failed to fetch registrations');
       return res.json();
     },
