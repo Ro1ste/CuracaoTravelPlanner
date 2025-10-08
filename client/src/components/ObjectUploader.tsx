@@ -1,5 +1,5 @@
 // Referenced from blueprint:javascript_object_storage
-import { useState } from "react";
+import { useState, useRef } from "react";
 import type { ReactNode } from "react";
 import Uppy from "@uppy/core";
 import { DashboardModal } from "@uppy/react";
@@ -47,11 +47,15 @@ export function ObjectUploader({
   children,
 }: ObjectUploaderProps) {
   const [showModal, setShowModal] = useState(false);
+  const [useFallback, setUseFallback] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [uppy] = useState(() =>
     new Uppy({
       restrictions: {
         maxNumberOfFiles,
         maxFileSize,
+        allowedFileTypes: ['.jpg', '.jpeg', '.png', '.mp4', '.mov'],
       },
       autoProceed: false,
     })
@@ -82,10 +86,46 @@ export function ObjectUploader({
       })
   );
 
+  const handleButtonClick = () => {
+    console.log('Upload button clicked, opening modal...');
+    if (useFallback) {
+      fileInputRef.current?.click();
+    } else {
+      setShowModal(true);
+    }
+  };
+
+  const handleModalClose = () => {
+    console.log('Modal closed');
+    setShowModal(false);
+  };
+
+  const handleFileInputChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    // Convert FileList to Array and create a mock UploadResult
+    const fileArray = Array.from(files);
+    const successful = fileArray.map(file => ({ data: file }));
+    
+    const mockResult: UploadResult<Record<string, any>, Record<string, any>> = {
+      successful,
+      failed: [],
+      total: fileArray.length,
+    };
+
+    onComplete?.(mockResult);
+    
+    // Reset the input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div>
       <Button 
-        onClick={() => setShowModal(true)} 
+        onClick={handleButtonClick} 
         className={buttonClassName}
         variant={buttonVariant}
         type="button"
@@ -93,12 +133,38 @@ export function ObjectUploader({
         {children}
       </Button>
 
-      <DashboardModal
-        uppy={uppy}
-        open={showModal}
-        onRequestClose={() => setShowModal(false)}
-        proudlyDisplayPoweredByUppy={false}
+      {/* Fallback file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple={maxNumberOfFiles > 1}
+        accept=".jpg,.jpeg,.png,.mp4,.mov"
+        onChange={handleFileInputChange}
+        style={{ display: 'none' }}
       />
+
+      {/* Uppy Modal */}
+      {showModal && (
+        <DashboardModal
+          uppy={uppy}
+          open={showModal}
+          onRequestClose={handleModalClose}
+          proudlyDisplayPoweredByUppy={false}
+          closeModalOnClickOutside={true}
+        />
+      )}
+
+      {/* Debug button to switch to fallback */}
+      {process.env.NODE_ENV === 'development' && (
+        <Button
+          onClick={() => setUseFallback(!useFallback)}
+          variant="ghost"
+          size="sm"
+          className="ml-2 text-xs"
+        >
+          {useFallback ? 'Use Uppy' : 'Use Fallback'}
+        </Button>
+      )}
     </div>
   );
 }
