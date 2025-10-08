@@ -19,7 +19,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export class SupabaseObjectStorageService {
-  private bucketName = 'proof-uploads-v2';
+  private bucketName = 'proof-uploads';
 
   constructor() {
     // Initialize bucket if it doesn't exist

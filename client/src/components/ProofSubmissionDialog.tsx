@@ -82,7 +82,7 @@ export function ProofSubmissionDialog({
       const ext = file.name.split('.').pop() || 'bin';
       const path = `proofs/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { data, error } = await supabase.storage
-        .from('proof-uploads-v2')
+        .from('proof-uploads')
         .upload(path, file, { upsert: false });
       if (error) {
         toast({ title: 'Upload failed', description: error.message, variant: 'destructive' });
