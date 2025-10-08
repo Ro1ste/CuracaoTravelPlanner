@@ -58,6 +58,7 @@ export function ProofSubmissionDialog({
 }: ProofSubmissionDialogProps) {
   const { toast } = useToast();
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<Map<string, string>>(new Map()); // file name -> URL mapping
 
   const form = useForm<ProofSubmissionFormData>({
     resolver: zodResolver(proofSubmissionSchema),
@@ -74,42 +75,70 @@ export function ProofSubmissionDialog({
   };
 
   const handleUploadComplete = async (files: File[]) => {
-    if (files.length === 0) return;
+    // If no files, clear all uploaded URLs
+    if (files.length === 0) {
+      setUploadedUrls([]);
+      setUploadedFiles(new Map());
+      return;
+    }
 
-    // Upload each selected file directly to Supabase Storage using anon key
-    const uploadedUrls: string[] = [];
+    const currentCount = uploadedUrls.length;
+    const newUploadedFiles = new Map(uploadedFiles);
+    const newUploadedUrls: string[] = [];
+    let newFilesCount = 0;
+
+    // Process each file
     for (const file of files) {
-      try {
-        const ext = file.name.split('.').pop() || 'bin';
-        const path = `proofs/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { data, error } = await supabase.storage
-          .from('proof-uploads')
-          .upload(path, file, { upsert: false });
-        if (error) {
+      const fileName = file.name;
+      
+      // Check if file is already uploaded
+      if (newUploadedFiles.has(fileName)) {
+        // File already uploaded, use existing URL
+        newUploadedUrls.push(newUploadedFiles.get(fileName)!);
+      } else {
+        // Upload new file
+        try {
+          const ext = file.name.split('.').pop() || 'bin';
+          const path = `proofs/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+          const { data, error } = await supabase.storage
+            .from('proof-uploads')
+            .upload(path, file, { upsert: false });
+          if (error) {
+            toast({ title: 'Upload failed', description: error.message, variant: 'destructive' });
+            continue;
+          }
+          
+          // Generate the full public URL
+          const publicUrl = supabase.storage
+            .from('proof-uploads')
+            .getPublicUrl(data.path).data.publicUrl;
+          
+          // Store the mapping and URL
+          newUploadedFiles.set(fileName, publicUrl);
+          newUploadedUrls.push(publicUrl);
+          newFilesCount++;
+        } catch (error: any) {
           toast({ title: 'Upload failed', description: error.message, variant: 'destructive' });
           continue;
         }
-        
-        // Generate the full public URL
-        const publicUrl = supabase.storage
-          .from('proof-uploads')
-          .getPublicUrl(data.path).data.publicUrl;
-        
-        uploadedUrls.push(publicUrl);
-      } catch (error: any) {
-        toast({ title: 'Upload failed', description: error.message, variant: 'destructive' });
-        continue;
       }
     }
 
-    if (uploadedUrls.length > 0) {
-      setUploadedUrls(prev => {
-        const newUrls = [...prev, ...uploadedUrls];
-        toast({
-          title: `${uploadedUrls.length} file(s) uploaded!`,
-          description: `You have ${newUrls.length} file(s) total. Minimum 6 required.`,
-        });
-        return newUrls;
+    // Update states
+    setUploadedFiles(newUploadedFiles);
+    setUploadedUrls(newUploadedUrls);
+    
+    // Show appropriate toast message
+    if (newFilesCount > 0) {
+      toast({
+        title: `${newFilesCount} file(s) uploaded!`,
+        description: `You have ${newUploadedUrls.length} file(s) total. Minimum 6 required.`,
+      });
+    } else if (newUploadedUrls.length < currentCount) {
+      const removedFiles = currentCount - newUploadedUrls.length;
+      toast({
+        title: `${removedFiles} file(s) removed`,
+        description: `You have ${newUploadedUrls.length} file(s) total. Minimum 6 required.`,
       });
     }
   };
