@@ -76,34 +76,19 @@ export function ProofSubmissionDialog({
   const handleUploadComplete = async (files: File[]) => {
     if (files.length === 0) return;
 
-    // Upload each selected file to the server, which will handle Supabase upload
+    // Upload each selected file directly to Supabase Storage using anon key
     const uploadedPaths: string[] = [];
     for (const file of files) {
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-        
-        const response = await fetch('/api/objects/upload', {
-          method: 'POST',
-          body: formData,
-          credentials: 'include'
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Upload failed');
-        }
-        
-        const result = await response.json();
-        uploadedPaths.push(result.path);
-      } catch (error: any) {
-        toast({ 
-          title: 'Upload failed', 
-          description: error.message || 'Failed to upload file', 
-          variant: 'destructive' 
-        });
+      const ext = file.name.split('.').pop() || 'bin';
+      const path = `proofs/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { data, error } = await supabase.storage
+        .from('proof-uploads-v2')
+        .upload(path, file, { upsert: false });
+      if (error) {
+        toast({ title: 'Upload failed', description: error.message, variant: 'destructive' });
         continue;
       }
+      uploadedPaths.push(data.path);
     }
 
     if (uploadedPaths.length > 0) {
