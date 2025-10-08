@@ -60,11 +60,16 @@ export class SupabaseObjectStorageService {
       // The visibility is controlled by bucket policies
       console.log(`Setting ACL for ${normalizedPath}:`, aclPolicy);
       
-      // Return the normalized path
-      return normalizedPath;
+      // Return the full public URL instead of just the path
+      const { data } = supabase.storage
+        .from(this.bucketName)
+        .getPublicUrl(normalizedPath);
+      
+      return data.publicUrl;
     } catch (error) {
       console.error('Error setting ACL policy:', error);
-      return normalizedPath;
+      // Fallback to original URL if normalization fails
+      return rawPath;
     }
   }
 
