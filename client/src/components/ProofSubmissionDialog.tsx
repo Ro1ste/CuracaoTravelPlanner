@@ -197,7 +197,7 @@ export function ProofSubmissionDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="sm:max-w-[600px]"
+        className="sm:max-w-[800px] max-h-[95vh] overflow-y-auto"
         data-testid="dialog-proof-submission"
       >
         <DialogHeader>
@@ -274,7 +274,7 @@ export function ProofSubmissionDialog({
                       Uploaded Files: {uploadedUrls.length} / 6 minimum
                     </span>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
                     {uploadedUrls.map((url, index) => (
                       <div
                         key={index}

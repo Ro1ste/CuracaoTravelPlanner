@@ -149,7 +149,7 @@ export function ObjectUploader({
 
       {/* Drag and Drop Area */}
       <div
-        className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+        className={`border-2 border-dashed rounded-lg p-4 sm:p-6 text-center transition-colors min-h-[120px] flex flex-col justify-center ${
           isDragOver 
             ? 'border-primary bg-primary/5' 
             : 'border-muted-foreground/25 hover:border-muted-foreground/50'
@@ -169,10 +169,10 @@ export function ObjectUploader({
 
       {/* Selected Files */}
       {selectedFiles.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-2 max-h-48 overflow-y-auto">
           <h4 className="text-sm font-medium">Selected Files:</h4>
           {selectedFiles.map((file, index) => (
-            <div key={index} className="flex items-center justify-between p-2 border rounded">
+            <div key={index} className="flex items-center justify-between p-2 border rounded text-sm">
               <div className="flex items-center gap-2">
                 <Upload className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">{file.name}</span>
