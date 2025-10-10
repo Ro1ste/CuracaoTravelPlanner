@@ -241,8 +241,14 @@ export function ProofSubmissionDialog({
             <div className="space-y-2">
               <FormLabel>Upload Files (Minimum 6)</FormLabel>
               <ObjectUploader
+                key={form.watch("contentType")} // Force re-render when content type changes
                 maxNumberOfFiles={10}
                 maxFileSize={30485760}
+                allowedFileTypes={
+                  form.watch("contentType") === "image" 
+                    ? ['.jpg', '.jpeg', '.png'] 
+                    : ['.mp4', '.mov']
+                }
                 onGetUploadParameters={handleGetUploadParameters}
                 onComplete={handleUploadComplete}
                 buttonVariant="outline"
@@ -263,7 +269,7 @@ export function ProofSubmissionDialog({
                 </div>
               </ObjectUploader>
               <FormDescription>
-                Upload images (JPG, PNG) or videos (MP4, MOV). Max size: 30MB per file. Upload at least 6 files.
+                Upload {form.watch("contentType") === "image" ? "images (JPG, PNG)" : "videos (MP4, MOV)"}. Max size: 30MB per file. Upload at least 6 files.
               </FormDescription>
               
               {uploadedUrls.length > 0 && (

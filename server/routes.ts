@@ -366,6 +366,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         companyId: company.id
       });
 
+      // Check if there's already a pending or approved proof for this task
+      const existingProofs = await storage.getProofsByCompany(company.id);
+      const existingProof = existingProofs.find(proof => 
+        proof.taskId === proofData.taskId && 
+        (proof.status === 'pending' || proof.status === 'approved')
+      );
+      
+      if (existingProof) {
+        if (existingProof.status === 'pending') {
+          return res.status(400).json({ 
+            message: "You have already submitted a proof for this task. It's currently pending review." 
+          });
+        } else if (existingProof.status === 'approved') {
+          return res.status(400).json({ 
+            message: "This task has already been completed and approved." 
+          });
+        }
+      }
+
       // Normalize all object storage paths with ACL policies
       const objectStorageService = new SupabaseObjectStorageService();
       const normalizedUrls = await Promise.all(

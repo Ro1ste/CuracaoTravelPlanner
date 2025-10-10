@@ -60,6 +60,26 @@ export function CompanyDashboard() {
   }
 
   const handleSubmitProof = (taskId: string, taskTitle: string) => {
+    // Check if there's already a pending or approved proof for this task
+    const existingProof = proofs?.find(proof => proof.taskId === taskId);
+    if (existingProof) {
+      if (existingProof.status === 'pending') {
+        toast({
+          title: "Proof Already Submitted",
+          description: "You have already submitted a proof for this task. It's currently pending review.",
+          variant: "default",
+        });
+        return;
+      } else if (existingProof.status === 'approved') {
+        toast({
+          title: "Task Already Completed",
+          description: "This task has already been completed and approved.",
+          variant: "default",
+        });
+        return;
+      }
+    }
+    
     setSelectedTask({ id: taskId, title: taskTitle });
     setProofSubmissionOpen(true);
   };
@@ -131,17 +151,26 @@ export function CompanyDashboard() {
               </div>
             ) : tasks && tasks.length > 0 ? (
               <div className="grid gap-4">
-                {tasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    title={task.title}
-                    description={task.description || ""}
-                    pointsReward={task.pointsReward || 0}
-                    caloriesBurned={task.caloriesBurned || 0}
-                    youtubeUrl={task.youtubeUrl || undefined}
-                    onSubmitProof={() => handleSubmitProof(task.id, task.title)}
-                  />
-                ))}
+                {tasks.map((task) => {
+                  // Check if there's a proof for this task
+                  const taskProof = proofs?.find(proof => proof.taskId === task.id);
+                  const isCompleted = taskProof?.status === 'approved';
+                  const isPending = taskProof?.status === 'pending';
+                  
+                  return (
+                    <TaskCard
+                      key={task.id}
+                      title={task.title}
+                      description={task.description || ""}
+                      pointsReward={task.pointsReward || 0}
+                      caloriesBurned={task.caloriesBurned || 0}
+                      youtubeUrl={task.youtubeUrl || undefined}
+                      onSubmitProof={() => handleSubmitProof(task.id, task.title)}
+                      isCompleted={isCompleted}
+                      isPending={isPending}
+                    />
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
@@ -156,34 +185,41 @@ export function CompanyDashboard() {
             <div>
               <h2 className="text-xl font-semibold mb-4">Recent Submissions</h2>
               <div className="space-y-2">
-                {proofs.slice(0, 5).map((proof) => (
-                  <div
-                    key={proof.id}
-                    className="flex items-center justify-between p-3 rounded-md border"
-                    data-testid={`proof-${proof.id}`}
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">Task Proof</p>
-                      <p className="text-xs text-muted-foreground">
-                        {proof.submittedAt ? new Date(proof.submittedAt).toLocaleDateString() : 'N/A'}
-                      </p>
+                {proofs.slice(0, 5).map((proof) => {
+                  // Find the corresponding task for this proof
+                  const task = tasks?.find(task => task.id === proof.taskId);
+                  const taskName = task?.title;
+                  
+                  return (
+                    <div
+                      key={proof.id}
+                      className="flex items-center justify-between p-3 rounded-md border"
+                      data-testid={`proof-${proof.id}`}
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{taskName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {proof.submittedAt ? new Date(proof.submittedAt).toLocaleDateString() : 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full ${
+                            proof.status === 'approved'
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                              : proof.status === 'rejected'
+                              ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                              : 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                          }`}
+                          data-testid={`status-${proof.status}`}
+                        >
+                          {proof.status === 'approved' ? 'Approved' : 
+                           proof.status === 'rejected' ? 'Rejected' : 'Pending Review'}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <span
-                        className={`text-xs px-2 py-1 rounded-full ${
-                          proof.status === 'approved'
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                            : proof.status === 'rejected'
-                            ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
-                            : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
-                        }`}
-                        data-testid={`status-${proof.status}`}
-                      >
-                        {proof.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Award, Flame, ExternalLink } from "lucide-react";
+import { Play, Award, Flame, ExternalLink, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TaskCardProps {
@@ -12,6 +12,7 @@ interface TaskCardProps {
   caloriesBurned: number;
   onSubmitProof: () => void;
   isCompleted?: boolean;
+  isPending?: boolean;
 }
 
 export function TaskCard({ 
@@ -21,7 +22,8 @@ export function TaskCard({
   pointsReward, 
   caloriesBurned, 
   onSubmitProof,
-  isCompleted = false 
+  isCompleted = false,
+  isPending = false
 }: TaskCardProps) {
   const openYouTubeVideo = () => {
     if (youtubeUrl) {
@@ -46,6 +48,18 @@ export function TaskCard({
               <Flame className="w-3 h-3 mr-1" />
               {caloriesBurned} cal
             </Badge>
+            {isPending && (
+              <Badge className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                <Clock className="w-3 h-3 mr-1" />
+                Pending
+              </Badge>
+            )}
+            {isCompleted && (
+              <Badge className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                <Award className="w-3 h-3 mr-1" />
+                Completed
+              </Badge>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -93,12 +107,12 @@ export function TaskCard({
               "flex-1",
               !youtubeUrl && "w-full"
             )}
-            variant={isCompleted ? "secondary" : "default"}
+            variant={isCompleted ? "secondary" : isPending ? "outline" : "default"}
             size="sm"
-            disabled={isCompleted}
+            disabled={isCompleted || isPending}
             data-testid="button-submit-proof"
           >
-            {isCompleted ? "Proof Submitted" : "Submit Proof"}
+            {isCompleted ? "Proof Approved" : isPending ? "Pending Review" : "Submit Proof"}
           </Button>
         </div>
       </CardContent>

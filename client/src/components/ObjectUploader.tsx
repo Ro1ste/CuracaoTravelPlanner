@@ -7,13 +7,14 @@ import { Upload, X } from "lucide-react";
 interface ObjectUploaderProps {
   maxNumberOfFiles?: number;
   maxFileSize?: number;
+  allowedFileTypes?: string[]; // e.g., ['.jpg', '.png'] for images only
   onGetUploadParameters: () => Promise<{
     method: "PUT";
     url: string;
   }>;
   onComplete?: (files: File[]) => void;
   buttonClassName?: string;
-  buttonVariant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+  buttonVariant?: "default" | "destructive" | "outline" | "secondary" | "ghost";
   children: ReactNode;
 }
 
@@ -30,6 +31,7 @@ interface ObjectUploaderProps {
 export function ObjectUploader({
   maxNumberOfFiles = 1,
   maxFileSize = 10485760, // 10MB default
+  allowedFileTypes = ['.jpg', '.jpeg', '.png', '.mp4', '.mov'], // Default to all supported types
   onGetUploadParameters,
   onComplete,
   buttonClassName,
@@ -51,10 +53,9 @@ export function ObjectUploader({
     }
 
     // Check file type
-    const allowedTypes = ['.jpg', '.jpeg', '.png', '.mp4', '.mov'];
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
-    if (!allowedTypes.includes(fileExtension)) {
-      return `File ${file.name} has an unsupported format. Allowed: ${allowedTypes.join(', ')}`;
+    if (!allowedFileTypes.includes(fileExtension)) {
+      return `File ${file.name} has an unsupported format. Allowed: ${allowedFileTypes.join(', ')}`;
     }
 
     return null;
@@ -142,7 +143,7 @@ export function ObjectUploader({
         ref={fileInputRef}
         type="file"
         multiple={maxNumberOfFiles > 1}
-        accept=".jpg,.jpeg,.png,.mp4,.mov"
+        accept={allowedFileTypes.join(',')}
         onChange={handleFileInputChange}
         style={{ display: 'none' }}
       />
