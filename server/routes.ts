@@ -320,7 +320,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Fetch related task and company data
       const task = await storage.getTaskById(proof.taskId);
-      const company = await storage.getCompanyById(proof.companyId);
+      const company = await storage.getCompany(proof.companyId);
       
       res.json({
         ...proof,
@@ -779,7 +779,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const updatedRegistration = await storage.updateRegistrationStatus(req.params.id, 'approved');
         
-        const emailTemplate = event.emailSubject && event.emailBodyText
+        const emailTemplate = (event.emailSubject && event.emailSubject.trim() !== '' && event.emailBodyText && event.emailBodyText.trim() !== '')
           ? { subject: event.emailSubject, text: event.emailBodyText }
           : EmailService.getDefaultTemplate(event.title, `${registration.firstName} ${registration.lastName}`);
 
@@ -836,7 +836,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       const qrCodeDataUrl = await QRCodeService.generateQRCode(qrPayload);
 
-      const emailTemplate = event.emailSubject && event.emailBodyText
+      const emailTemplate = (event.emailSubject && event.emailSubject.trim() !== '' && event.emailBodyText && event.emailBodyText.trim() !== '')
         ? { subject: event.emailSubject, text: event.emailBodyText }
         : EmailService.getDefaultTemplate(event.title, `${registration.firstName} ${registration.lastName}`);
 
@@ -854,16 +854,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Check in attendee (admin only)
-  app.post('/api/registrations/:id/checkin', isAuthenticated, isAdmin, async (req, res) => {
+  // Check in attendee via QR code (admin only)
+  app.post('/api/registrations/qr-checkin', isAuthenticated, isAdmin, async (req, res) => {
     try {
-      const registration = await storage.checkInRegistration(req.params.id);
+      const { attendeeId, eventId, token } = req.body;
+
+      if (!attendeeId || !eventId || !token) {
+        return res.status(400).json({ message: "Missing required QR code data" });
+      }
+
+      // Verify the QR code token
+      const isValidToken = QRCodeService.verifyToken(token, attendeeId, eventId);
+      if (!isValidToken) {
+        return res.status(401).json({ message: "Invalid or expired QR code" });
+      }
+
+      // Get the registration
+      const registration = await storage.getEventRegistrationById(attendeeId);
       if (!registration) {
         return res.status(404).json({ message: "Registration not found" });
       }
-      res.json(registration);
+
+      // Verify the event matches
+      if (registration.eventId !== eventId) {
+        return res.status(400).json({ message: "QR code does not match registration event" });
+      }
+
+      // Check if already checked in
+      if (registration.checkedIn) {
+        return res.status(400).json({ message: "Attendee already checked in" });
+      }
+
+      // Check in the attendee
+      const checkedInRegistration = await storage.checkInRegistration(attendeeId);
+
+      res.json({
+        ...checkedInRegistration,
+        message: "Attendee successfully checked in"
+      });
     } catch (error) {
-      console.error("Error checking in attendee:", error);
+      console.error("Error checking in attendee via QR code:", error);
       res.status(500).json({ message: "Failed to check in attendee" });
     }
   });

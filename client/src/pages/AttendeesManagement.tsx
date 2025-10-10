@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,16 +12,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CheckCircle, XCircle, Mail, ArrowLeft, User, Building2, Phone as PhoneIcon, Mail as MailIcon } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { CheckCircle, XCircle, Mail, ArrowLeft, User, Building2, Phone as PhoneIcon, Mail as MailIcon, QrCode, Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { EventRegistration, Event } from "@shared/schema";
 import { Link } from "wouter";
+import { QRCodeScanner } from "@/components/QRCodeScanner";
 
 export function AttendeesManagement() {
   const { toast } = useToast();
   const params = useParams();
   const eventId = params.eventId as string;
+  const [qrScannerOpen, setQrScannerOpen] = useState(false);
+  const [justCheckedInAttendee, setJustCheckedInAttendee] = useState<string | null>(null);
 
   const { data: event } = useQuery<Event>({
     queryKey: ['/api/events', eventId],
@@ -83,6 +88,33 @@ export function AttendeesManagement() {
     },
   });
 
+  const qrCheckInMutation = useMutation({
+    mutationFn: async (qrData: { attendeeId: string; eventId: string; token: string }) => {
+      await apiRequest("POST", "/api/registrations/qr-checkin", qrData);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/events', eventId, 'registrations'] });
+      setJustCheckedInAttendee(variables.attendeeId);
+      toast({
+        title: "Check-in Successful",
+        description: "Attendee has been successfully checked in",
+      });
+      setQrScannerOpen(false);
+
+      // Clear the highlight after 3 seconds
+      setTimeout(() => {
+        setJustCheckedInAttendee(null);
+      }, 3000);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Check-in Failed",
+        description: error.message || "Failed to check in attendee",
+        variant: "destructive",
+      });
+    },
+  });
+
   const pendingAttendees = attendees.filter(a => a.status === 'pending');
   const approvedAttendees = attendees.filter(a => a.status === 'approved');
   const rejectedAttendees = attendees.filter(a => a.status === 'rejected');
@@ -104,6 +136,50 @@ export function AttendeesManagement() {
             Back to Events
           </Button>
         </Link>
+        <Dialog open={qrScannerOpen} onOpenChange={setQrScannerOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" data-testid="button-qr-scanner">
+              <QrCode className="h-4 w-4 mr-2" />
+              Scan QR Code
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Scan Attendee QR Code</DialogTitle>
+            </DialogHeader>
+            <QRCodeScanner
+              isActive={qrScannerOpen}
+              onScan={(qrData) => {
+                try {
+                  const parsed = JSON.parse(qrData);
+                  if (parsed.attendeeId && parsed.eventId && parsed.token) {
+                    qrCheckInMutation.mutate(parsed);
+                  } else {
+                    toast({
+                      title: "Invalid QR Code",
+                      description: "This QR code does not contain valid check-in data",
+                      variant: "destructive",
+                    });
+                  }
+                } catch (error) {
+                  toast({
+                    title: "Invalid QR Code",
+                    description: "This QR code is not in the expected format",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              onError={(error) => {
+                toast({
+                  title: "Scanner Error",
+                  description: error,
+                  variant: "destructive",
+                });
+              }}
+              onClose={() => setQrScannerOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div>
@@ -161,7 +237,15 @@ export function AttendeesManagement() {
                 </TableHeader>
                 <TableBody>
                   {attendees.map((attendee) => (
-                    <TableRow key={attendee.id} data-testid={`attendee-${attendee.id}`}>
+                    <TableRow
+                      key={attendee.id}
+                      data-testid={`attendee-${attendee.id}`}
+                      className={`${
+                        justCheckedInAttendee === attendee.id
+                          ? 'bg-green-50 border-green-200 animate-pulse'
+                          : ''
+                      }`}
+                    >
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-muted-foreground" />
@@ -205,18 +289,25 @@ export function AttendeesManagement() {
                         }
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge
-                          variant={
-                            attendee.status === 'approved'
-                              ? 'default'
-                              : attendee.status === 'rejected'
-                              ? 'destructive'
-                              : 'secondary'
-                          }
-                          data-testid={`status-${attendee.id}`}
-                        >
-                          {attendee.status}
-                        </Badge>
+                        <div className="flex items-center justify-center gap-2">
+                          <Badge
+                            variant={
+                              attendee.status === 'approved'
+                                ? 'default'
+                                : attendee.status === 'rejected'
+                                ? 'destructive'
+                                : 'secondary'
+                            }
+                            data-testid={`status-${attendee.id}`}
+                          >
+                            {attendee.status}
+                          </Badge>
+                          {justCheckedInAttendee === attendee.id && attendee.checkedIn && (
+                            <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+                              Just Checked In!
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
