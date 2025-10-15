@@ -10,34 +10,24 @@ export interface EmailOptions {
 }
 
 export class EmailService {
-  // Prefer server-side envs; fall back to VITE_ for compatibility
-  private static SMTP_HOST = process.env.SMTP_HOST || process.env.VITE_SMTP_HOST;
-  private static SMTP_PORT = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : (process.env.VITE_SMTP_PORT ? Number(process.env.VITE_SMTP_PORT) : 587);
-  private static SMTP_USER = process.env.SMTP_USER || process.env.VITE_SMTP_USER;
-  private static SMTP_PASS = process.env.SMTP_PASS || process.env.VITE_SMTP_PASS;
-  private static FROM_EMAIL = process.env.SMTP_FROM || process.env.VITE_SMTP_FROM || process.env.SMTP_USER || process.env.VITE_SMTP_USER || 'no-reply@localhost';
-
-  private static ensureConfigured(): void {
-    if (!this.SMTP_HOST || !this.SMTP_PORT || !this.SMTP_USER || !this.SMTP_PASS) {
-      throw new Error('SMTP not configured. Please set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS (and optionally SMTP_FROM) in .env');
-    }
-  }
+  private static SMTP_HOST = process.env.SMTP_HOST || 'smtp.hostinger.com';
+  private static SMTP_PORT = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587;
+  private static SMTP_USER = process.env.SMTP_USER || 'info@curacaointernationsportsweek.com';
+  private static SMTP_PASS = process.env.SMTP_PASS || 'Zait@1234';
+  private static FROM_EMAIL = process.env.SMTP_FROM || 'info@curacaointernationsportsweek.com';
 
   static async sendEmail(options: EmailOptions): Promise<void> {
-    this.ensureConfigured();
-
-    const transporter = nodemailer.createTransport({
+    const transporter = nodemailer.createTransporter({
       host: this.SMTP_HOST,
-      port: this.SMTP_PORT!,
-      secure: this.SMTP_PORT === 465, // true for 465, false for others
+      port: this.SMTP_PORT,
+      secure: this.SMTP_PORT === 465,
       auth: {
-        user: this.SMTP_USER!,
-        pass: this.SMTP_PASS!,
+        user: this.SMTP_USER,
+        pass: this.SMTP_PASS,
       },
     });
 
     let htmlContent = options.html || `<p>${options.text}</p>`;
-
     const attachments: { filename: string; content: Buffer; cid: string }[] = [];
 
     if (options.qrCodeDataUrl) {
@@ -51,17 +41,6 @@ export class EmailService {
           <div style="margin-top: 20px; text-align: center;">
             <h3>Your Event QR Code</h3>
             <img src="cid:qr-code" alt="QR Code" style="max-width: 300px; display: block; margin: 0 auto;" />
-            <p style="margin-top: 10px; font-size: 12px; color: #;">
-              Present this QR code at the event for check-in
-            </p>
-          </div>
-        `;
-      } else {
-        // Fallback to data URL if parsing failed
-        htmlContent += `
-          <div style="margin-top: 20px; text-align: center;">
-            <h3>Your Event QR Code</h3>
-            <img src="${options.qrCodeDataUrl}" alt="QR Code" style="max-width: 300px;" />
             <p style="margin-top: 10px; font-size: 12px; color: #666;">
               Present this QR code at the event for check-in
             </p>
@@ -83,7 +62,6 @@ export class EmailService {
       to: options.to,
       subject: options.subject,
       hasQRCode: !!options.qrCodeDataUrl,
-      timestamp: new Date().toISOString(),
     });
   }
 

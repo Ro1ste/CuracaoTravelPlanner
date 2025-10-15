@@ -5,7 +5,7 @@ import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ObjectUploader } from "@/components/ObjectUploader";
-import { supabase } from "@/lib/supabase";
+import { S3UploadService } from "@/lib/s3Upload";
 import type { UploadResult } from "@uppy/core";
 import { Button } from "@/components/ui/button";
 import {
@@ -98,20 +98,8 @@ export function ProofSubmissionDialog({
       } else {
         // Upload new file
         try {
-          const ext = file.name.split('.').pop() || 'bin';
-          const path = `proofs/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-          const { data, error } = await supabase.storage
-            .from('proof-uploads')
-            .upload(path, file, { upsert: false });
-          if (error) {
-            toast({ title: 'Upload failed', description: error.message, variant: 'destructive' });
-            continue;
-          }
-          
-          // Generate the full public URL
-          const publicUrl = supabase.storage
-            .from('proof-uploads')
-            .getPublicUrl(data.path).data.publicUrl;
+          // Upload file to S3
+          const publicUrl = await S3UploadService.uploadFile(file);
           
           // Store the mapping and URL
           newUploadedFiles.set(fileName, publicUrl);

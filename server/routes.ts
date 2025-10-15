@@ -11,7 +11,7 @@ import {
   companySignupSchema,
   companyLoginSchema
 } from "@shared/schema";
-import { SupabaseObjectStorageService } from "./supabaseObjectStorage";
+import { S3ObjectStorageService } from "./s3ObjectStorage";
 import { QRCodeService } from "./qrService";
 import { EmailService } from "./emailService";
 import bcrypt from "bcrypt";
@@ -386,7 +386,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Normalize all object storage paths with ACL policies
-      const objectStorageService = new SupabaseObjectStorageService();
+      const objectStorageService = new S3ObjectStorageService();
       const normalizedUrls = await Promise.all(
         proofData.contentUrls.map(url => 
           objectStorageService.trySetObjectEntityAclPolicy(url, {
@@ -617,11 +617,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ========== OBJECT STORAGE ROUTES ==========
+  // Get upload URL for S3 object entity (client-side uploads)
+  app.post("/api/upload-url", isAuthenticated, async (req, res) => {
+    try {
+      const objectStorageService = new S3ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadUrl: uploadURL });
+    } catch (error) {
+      console.error("Error getting upload URL:", error);
+      res.status(500).json({ message: "Failed to get upload URL" });
+    }
+  });
+
   // Referenced from blueprint:javascript_object_storage
-  // Get upload URL for proof content
+  // Get upload URL for proof content (legacy)
   app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
     try {
-      const objectStorageService = new SupabaseObjectStorageService();
+      const objectStorageService = new S3ObjectStorageService();
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
       res.json({ uploadURL });
     } catch (error) {
@@ -634,7 +646,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/objects/:objectPath(*)", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.claims?.sub;
-      const objectStorageService = new SupabaseObjectStorageService();
+      const objectStorageService = new S3ObjectStorageService();
       const objectPath = req.params.objectPath;
       
       const canAccess = await objectStorageService.canAccessObjectEntity({

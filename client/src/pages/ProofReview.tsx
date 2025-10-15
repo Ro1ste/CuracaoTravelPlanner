@@ -50,11 +50,8 @@ export function ProofReview() {
     if (urlOrPath.startsWith('http')) {
       return urlOrPath;
     }
-    // If it's just a path, convert to full Supabase URL
-    const { data } = supabase.storage
-      .from('proof-uploads')
-      .getPublicUrl(urlOrPath);
-    return data.publicUrl;
+    // For S3, assume it's already a full URL or return as is
+    return urlOrPath;
   };
 
   const reviewProofMutation = useMutation({
