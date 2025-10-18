@@ -17,7 +17,7 @@ export class EmailService {
   private static FROM_EMAIL = process.env.SMTP_FROM || 'info@curacaointernationsportsweek.com';
 
   static async sendEmail(options: EmailOptions): Promise<void> {
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host: this.SMTP_HOST,
       port: this.SMTP_PORT,
       secure: this.SMTP_PORT === 465,
