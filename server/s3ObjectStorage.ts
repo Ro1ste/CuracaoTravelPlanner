@@ -16,7 +16,7 @@ export class S3ObjectStorageService {
   private cloudFrontDomain: string;
 
   constructor() {
-    this.bucketName = process.env.S3_BUCKET_NAME || 'curacao-travel-planner';
+    this.bucketName = process.env.S3_BUCKET_NAME || 'curacao-sports-week';
     this.region = process.env.S3_REGION || 'us-east-1';
     this.cloudFrontDomain = process.env.CLOUDFRONT_DOMAIN || '';
     
