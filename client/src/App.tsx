@@ -1,8 +1,9 @@
 import { Switch, Route, useLocation } from "wouter";
-import { queryClient } from "./lib/queryClient";
+import { queryClient, apiRequest } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ThemeProvider } from "next-themes";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -83,28 +84,23 @@ function AuthenticatedApp() {
   const { user } = useAuth();
   const isAdmin = user?.isAdmin || false;
   const userType = isAdmin ? 'admin' : 'company';
+  const [, setLocation] = useLocation();
 
   const handleLogout = async () => {
     try {
-      const response = await fetch('/api/logout', {
-        method: 'POST',
-        credentials: 'include'
-      });
+      // Call logout API to clear the HTTP-only cookie
+      await apiRequest("POST", "/api/logout");
       
-      if (response.ok) {
-        // Clear any cached data
-        queryClient.clear();
-        // Redirect to login page
-        window.location.href = '/login';
-      } else {
-        console.error('Logout failed');
-        // Force redirect anyway
-        window.location.href = '/login';
-      }
+      // Clear any cached data
+      queryClient.clear();
+      
+      // Navigate to login page using wouter
+      setLocation('/login');
     } catch (error) {
       console.error('Logout error:', error);
-      // Force redirect anyway
-      window.location.href = '/login';
+      // Clear cache and redirect anyway
+      queryClient.clear();
+      setLocation('/login');
     }
   };
 
@@ -190,10 +186,17 @@ function AppContent() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AppContent />
-        <Toaster />
-      </TooltipProvider>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+      >
+        <TooltipProvider>
+          <AppContent />
+          <Toaster />
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

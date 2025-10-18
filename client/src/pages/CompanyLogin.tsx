@@ -36,10 +36,11 @@ export default function CompanyLogin() {
 
   const loginMutation = useMutation({
     mutationFn: async (data: CompanyLogin) => {
-      return await apiRequest("POST", "/api/auth/login", data);
+      const response = await apiRequest("POST", "/api/auth/login", data);
+      return await response.json();
     },
     onSuccess: async () => {
-      // Invalidate user query to refetch with new session
+      // Invalidate user query to refetch with new cookie-based auth
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       
       toast({

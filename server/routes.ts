@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { isAuthenticated, isAdmin, loginUser, registerUser } from "./auth";
 import { 
   insertCompanySchema, 
   insertTaskSchema, 
@@ -17,28 +17,7 @@ import { EmailService } from "./emailService";
 import bcrypt from "bcrypt";
 import { nanoid } from "nanoid";
 
-// Middleware to check if user is admin
-const isAdmin = async (req: any, res: any, next: any) => {
-  try {
-    const userId = req.user.claims.sub;
-    const user = await storage.getUser(userId);
-    
-    if (!user || !user.isAdmin) {
-      return res.status(403).json({ message: "Admin access required" });
-    }
-    
-    req.currentUser = user;
-    next();
-  } catch (error) {
-    console.error("Error checking admin status:", error);
-    res.status(500).json({ message: "Failed to verify admin status" });
-  }
-};
-
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Set up authentication
-  await setupAuth(app);
-
   // ========== AUTHENTICATION ROUTES ==========
   
   // Company signup
@@ -87,32 +66,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const data = companyLoginSchema.parse(req.body);
       
-      // Find user by email
-      const user = await storage.getUserByEmail(data.email);
-      if (!user || !user.password) {
-        return res.status(401).json({ message: "Invalid email or password" });
-      }
-
-      // Verify password
-      const isValidPassword = await bcrypt.compare(data.password, user.password);
-      if (!isValidPassword) {
-        return res.status(401).json({ message: "Invalid email or password" });
-      }
-
-      // Set session with user object (compatible with Passport serialization)
-      const authUser = {
-        claims: { sub: user.id },
-        expires_at: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60), // 1 week
-        email: user.email,
-        id: user.id
-      };
+      // Use the JWT login function from auth.ts
+      const result = await loginUser(data.email, data.password);
       
-      req.login(authUser, (err: any) => {
-        if (err) {
-          console.error("Login session error:", err);
-          return res.status(500).json({ message: "Login failed" });
-        }
-        res.json({ success: true, message: "Login successful" });
+      if (!result) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+      
+      // Set HTTP-only cookie with JWT token
+      res.cookie('auth_token', result.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'none',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        path: '/',
+        domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost'
+      });
+      
+      console.log('Login successful - cookie set:', {
+        token: result.token.substring(0, 20) + '...',
+        user: result.user.email
+      });
+      
+      res.json({ 
+        success: true, 
+        message: "Login successful",
+        user: result.user
       });
     } catch (error: any) {
       console.error("Login error:", error);
@@ -122,26 +101,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Logout
   app.post('/api/logout', (req, res) => {
-    req.logout((err) => {
-      if (err) {
-        console.error("Logout error:", err);
-        return res.status(500).json({ message: "Logout failed" });
-      }
-      req.session.destroy((err) => {
-        if (err) {
-          console.error("Session destroy error:", err);
-          return res.status(500).json({ message: "Logout failed" });
-        }
-        res.clearCookie('connect.sid');
-        res.json({ success: true, message: "Logged out successfully" });
-      });
+    // Clear the HTTP-only cookie
+    res.clearCookie('auth_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'none',
+      path: '/',
+      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost'
     });
+    
+    res.json({ success: true, message: "Logged out successfully" });
   });
 
   // Get current user
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id; // JWT auth sets req.user.id directly
       const user = await storage.getUser(userId);
       
       if (!user) {
@@ -191,7 +166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/companies', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       
       // Check if user already has a company
       const existingCompany = await storage.getCompanyByUserId(userId);
@@ -210,7 +185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/companies/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const company = await storage.getCompany(req.params.id);
       
       if (!company) {
@@ -335,7 +310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/companies/:companyId/proofs', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const company = await storage.getCompanyByUserId(userId);
       
       // Users can only see their own company's proofs unless admin
@@ -354,7 +329,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/proofs', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const company = await storage.getCompanyByUserId(userId);
       
       if (!company) {
@@ -645,7 +620,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve private objects with ACL checks
   app.get("/objects/:objectPath(*)", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
       const objectStorageService = new S3ObjectStorageService();
       const objectPath = req.params.objectPath;
       
@@ -758,7 +733,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user's own registration for an event
   app.get('/api/events/:id/my-registration', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user || !user.email) {

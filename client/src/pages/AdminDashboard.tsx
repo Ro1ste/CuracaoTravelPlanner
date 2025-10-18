@@ -58,7 +58,7 @@ export function AdminDashboard() {
   };
 
   const handleViewEvents = () => {
-    window.location.href = "/events";
+    setLocation("/events");
   };
 
   return (
