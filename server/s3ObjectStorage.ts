@@ -47,6 +47,7 @@ export class S3ObjectStorageService {
       Bucket: this.bucketName,
       Key: objectKey,
       ContentType: 'application/octet-stream',
+      ACL: 'public-read', // Make uploaded files publicly readable
     });
 
     try {

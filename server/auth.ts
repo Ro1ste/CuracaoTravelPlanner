@@ -46,10 +46,6 @@ export function verifyToken(token: string): JWTPayload | null {
 // Authentication middleware
 export const isAuthenticated = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Debug logging
-    console.log('Auth middleware - cookies:', (req as any).cookies);
-    console.log('Auth middleware - headers:', req.headers);
-    
     // Try to get token from cookie first, then from Authorization header as fallback
     let token = (req as any).cookies?.auth_token;
     
@@ -59,8 +55,6 @@ export const isAuthenticated = async (req: Request, res: Response, next: NextFun
         token = authHeader.substring(7); // Remove 'Bearer ' prefix
       }
     }
-    
-    console.log('Auth middleware - token found:', !!token);
     
     if (!token) {
       return res.status(401).json({ message: 'No token provided' });
@@ -72,8 +66,15 @@ export const isAuthenticated = async (req: Request, res: Response, next: NextFun
       return res.status(401).json({ message: 'Invalid token' });
     }
     
+    // Handle different token payload structures
+    const userId = payload.userId || payload.id;
+    
+    if (!userId) {
+      return res.status(401).json({ message: 'Invalid token payload' });
+    }
+    
     // Get user from database to ensure they still exist
-    const user = await storage.getUser(payload.userId);
+    const user = await storage.getUser(userId);
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
     }

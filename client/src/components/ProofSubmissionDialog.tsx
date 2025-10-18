@@ -57,8 +57,8 @@ export function ProofSubmissionDialog({
   onOpenChange,
 }: ProofSubmissionDialogProps) {
   const { toast } = useToast();
-  const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
-  const [uploadedFiles, setUploadedFiles] = useState<Map<string, string>>(new Map()); // file name -> URL mapping
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<Map<string, { file: File; url: string }>>(new Map()); // file name -> { file, url }
 
   const form = useForm<ProofSubmissionFormData>({
     resolver: zodResolver(proofSubmissionSchema),
@@ -69,41 +69,50 @@ export function ProofSubmissionDialog({
 
   const handleGetUploadParameters = async () => {
     // This function is only used by the Uppy XHRUpload plugin.
-    // We won’t use signed URLs anymore; instead we upload directly with Supabase SDK.
+    // We won't use signed URLs anymore; instead we upload directly with Supabase SDK.
     // Return a dummy URL; the actual upload happens in handleUploadComplete below.
     return { method: "PUT" as const, url: "about:blank" };
   };
 
   const handleUploadComplete = async (files: File[]) => {
-    // If no files, clear all uploaded URLs
+    console.log('handleUploadComplete called with files:', files.map(f => f.name));
+    
+    // If no files, clear everything
     if (files.length === 0) {
-      setUploadedUrls([]);
+      // Delete all uploaded files from S3
+      for (const [fileName, { url }] of uploadedFiles.entries()) {
+        try {
+          await S3UploadService.deleteFile(url);
+        } catch (error) {
+          console.error('Failed to delete file from S3:', fileName, error);
+        }
+      }
+      setSelectedFiles([]);
       setUploadedFiles(new Map());
       return;
     }
 
-    const currentCount = uploadedUrls.length;
     const newUploadedFiles = new Map(uploadedFiles);
-    const newUploadedUrls: string[] = [];
+    const newSelectedFiles: File[] = [];
     let newFilesCount = 0;
 
-    // Process each file
+    // Process each selected file
     for (const file of files) {
       const fileName = file.name;
+      newSelectedFiles.push(file);
       
       // Check if file is already uploaded
       if (newUploadedFiles.has(fileName)) {
-        // File already uploaded, use existing URL
-        newUploadedUrls.push(newUploadedFiles.get(fileName)!);
+        // File already uploaded, keep existing URL
+        console.log('File already uploaded:', fileName);
       } else {
         // Upload new file
         try {
-          // Upload file to S3
+          console.log('Uploading new file:', fileName);
           const publicUrl = await S3UploadService.uploadFile(file);
           
-          // Store the mapping and URL
-          newUploadedFiles.set(fileName, publicUrl);
-          newUploadedUrls.push(publicUrl);
+          // Store the mapping
+          newUploadedFiles.set(fileName, { file, url: publicUrl });
           newFilesCount++;
         } catch (error: any) {
           toast({ title: 'Upload failed', description: error.message, variant: 'destructive' });
@@ -112,27 +121,77 @@ export function ProofSubmissionDialog({
       }
     }
 
+    // Find files that were removed and delete them from S3
+    const removedFiles: string[] = [];
+    for (const [fileName, { url }] of uploadedFiles.entries()) {
+      if (!files.some(f => f.name === fileName)) {
+        removedFiles.push(fileName);
+        try {
+          await S3UploadService.deleteFile(url);
+          console.log('Deleted file from S3:', fileName);
+        } catch (error) {
+          console.error('Failed to delete file from S3:', fileName, error);
+        }
+      }
+    }
+
     // Update states
+    setSelectedFiles(newSelectedFiles);
     setUploadedFiles(newUploadedFiles);
-    setUploadedUrls(newUploadedUrls);
     
     // Show appropriate toast message
     if (newFilesCount > 0) {
       toast({
         title: `${newFilesCount} file(s) uploaded!`,
-        description: `You have ${newUploadedUrls.length} file(s) total. Minimum 6 required.`,
+        description: `You have ${newSelectedFiles.length} file(s) total. Minimum 6 required.`,
       });
-    } else if (newUploadedUrls.length < currentCount) {
-      const removedFiles = currentCount - newUploadedUrls.length;
+    } else if (removedFiles.length > 0) {
       toast({
-        title: `${removedFiles} file(s) removed`,
-        description: `You have ${newUploadedUrls.length} file(s) total. Minimum 6 required.`,
+        title: `${removedFiles.length} file(s) removed`,
+        description: `You have ${newSelectedFiles.length} file(s) total. Minimum 6 required.`,
       });
     }
   };
 
+  const handleRemoveFile = async (fileName: string) => {
+    console.log('Removing file:', fileName);
+    
+    // Remove from selected files
+    const newSelectedFiles = selectedFiles.filter(f => f.name !== fileName);
+    
+    // Delete from S3 if it was uploaded
+    const fileData = uploadedFiles.get(fileName);
+    if (fileData) {
+      try {
+        await S3UploadService.deleteFile(fileData.url);
+        console.log('Deleted file from S3:', fileName);
+      } catch (error) {
+        console.error('Failed to delete file from S3:', fileName, error);
+        toast({ 
+          title: 'Warning', 
+          description: 'File removed from selection but may still exist in storage', 
+          variant: 'destructive' 
+        });
+      }
+    }
+    
+    // Update states
+    const newUploadedFiles = new Map(uploadedFiles);
+    newUploadedFiles.delete(fileName);
+    
+    setSelectedFiles(newSelectedFiles);
+    setUploadedFiles(newUploadedFiles);
+    
+    toast({
+      title: 'File removed',
+      description: `You have ${newSelectedFiles.length} file(s) total. Minimum 6 required.`,
+    });
+  };
+
   const submitProofMutation = useMutation({
     mutationFn: async (data: ProofSubmissionFormData) => {
+      const uploadedUrls = Array.from(uploadedFiles.values()).map(({ url }) => url);
+      
       if (uploadedUrls.length < 6) {
         throw new Error("Please upload at least 6 images or videos");
       }
@@ -158,7 +217,8 @@ export function ProofSubmissionDialog({
         queryKey: ["/api/companies", companyId, "proofs"],
       });
       form.reset();
-      setUploadedUrls([]);
+      setSelectedFiles([]);
+      setUploadedFiles(new Map());
       onOpenChange(false);
     },
     onError: (error: any) => {
@@ -171,6 +231,8 @@ export function ProofSubmissionDialog({
   });
 
   const onSubmit = (data: ProofSubmissionFormData) => {
+    const uploadedUrls = Array.from(uploadedFiles.values()).map(({ url }) => url);
+    
     if (uploadedUrls.length < 6) {
       toast({
         title: "Error",
@@ -243,10 +305,10 @@ export function ProofSubmissionDialog({
                 buttonClassName="w-full"
               >
                 <div className="flex items-center gap-2">
-                  {uploadedUrls.length > 0 ? (
+                  {selectedFiles.length > 0 ? (
                     <>
                       <CheckCircle className="h-4 w-4 text-green-600" />
-                      <span>{uploadedUrls.length} file(s) uploaded - Click to add more</span>
+                      <span>{selectedFiles.length} file(s) selected - Click to add more</span>
                     </>
                   ) : (
                     <>
@@ -260,21 +322,89 @@ export function ProofSubmissionDialog({
                 Upload {form.watch("contentType") === "image" ? "images (JPG, PNG)" : "videos (MP4, MOV)"}. Max size: 30MB per file. Upload at least 6 files.
               </FormDescription>
               
-              {uploadedUrls.length > 0 && (
+              {/* Selected Files List */}
+              {selectedFiles.length > 0 && (
                 <div className="mt-3 p-3 border rounded-md bg-muted/30">
                   <div className="flex items-center gap-2 mb-2">
                     <ImageIcon className="h-4 w-4" />
                     <span className="text-sm font-medium">
-                      Uploaded Files: {uploadedUrls.length} / 6 minimum
+                      Selected Files: {selectedFiles.length} / 6 minimum
+                    </span>
+                  </div>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {selectedFiles.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 border rounded text-sm">
+                        <div className="flex items-center gap-2">
+                          <Upload className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{file.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({Math.round(file.size / 1024)}KB)
+                          </span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleRemoveFile(file.name)}
+                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Uploaded Files Preview */}
+              {Array.from(uploadedFiles.values()).length > 0 && (
+                <div className="mt-3 p-3 border rounded-md bg-muted/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <ImageIcon className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      Uploaded Files: {Array.from(uploadedFiles.values()).length} / 6 minimum
                     </span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
-                    {uploadedUrls.map((url, index) => (
+                    {Array.from(uploadedFiles.values()).map(({ file, url }, index) => (
                       <div
                         key={index}
-                        className="aspect-square rounded-md bg-accent flex items-center justify-center text-xs p-1"
+                        className="aspect-square rounded-md bg-accent overflow-hidden relative group"
                       >
-                        File {index + 1}
+                        {form.watch("contentType") === "image" ? (
+                          <img
+                            src={url}
+                            alt={`Uploaded image ${index + 1}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              console.error('Image failed to load:', url);
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                            }}
+                          />
+                        ) : (
+                          <video
+                            src={url}
+                            className="w-full h-full object-cover"
+                            muted
+                            onError={(e) => {
+                              console.error('Video failed to load:', url);
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                            }}
+                          />
+                        )}
+                        {/* Fallback content if media fails to load */}
+                        <div className="hidden absolute inset-0 flex items-center justify-center text-xs p-1 bg-muted">
+                          {file.name}
+                        </div>
+                        {/* Remove button overlay */}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFile(file.name)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                        >
+                          ×
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -296,10 +426,10 @@ export function ProofSubmissionDialog({
               </Button>
               <Button
                 type="submit"
-                disabled={submitProofMutation.isPending || uploadedUrls.length < 6}
+                disabled={submitProofMutation.isPending || Array.from(uploadedFiles.values()).length < 6}
                 data-testid="button-submit-proof"
               >
-                {submitProofMutation.isPending ? "Submitting..." : `Submit Proof (${uploadedUrls.length}/6)`}
+                {submitProofMutation.isPending ? "Submitting..." : `Submit Proof (${Array.from(uploadedFiles.values()).length}/6)`}
               </Button>
             </DialogFooter>
           </form>

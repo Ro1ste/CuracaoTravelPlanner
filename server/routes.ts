@@ -83,10 +83,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost'
       });
       
-      console.log('Login successful - cookie set:', {
-        token: result.token.substring(0, 20) + '...',
-        user: result.user.email
-      });
       
       res.json({ 
         success: true, 
@@ -120,6 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       
       if (!user) {
+        console.log('User not found for ID:', userId);
         return res.status(404).json({ message: "User not found" });
       }
 
@@ -128,6 +125,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Remove password from response
       const { password, ...userWithoutPassword } = user;
+      
+      console.log('User fetched successfully:', userWithoutPassword.email);
       
       res.json({
         ...userWithoutPassword,
@@ -595,12 +594,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get upload URL for S3 object entity (client-side uploads)
   app.post("/api/upload-url", isAuthenticated, async (req, res) => {
     try {
+      console.log('Getting upload URL for user:', (req as any).user?.email);
       const objectStorageService = new S3ObjectStorageService();
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      console.log('Generated upload URL:', uploadURL.substring(0, 100) + '...');
       res.json({ uploadUrl: uploadURL });
     } catch (error) {
       console.error("Error getting upload URL:", error);
       res.status(500).json({ message: "Failed to get upload URL" });
+    }
+  });
+
+  // Delete file from S3
+  app.delete("/api/upload/:objectKey", isAuthenticated, async (req, res) => {
+    try {
+      const { objectKey } = req.params;
+      console.log('Deleting S3 object:', objectKey);
+      
+      const objectStorageService = new S3ObjectStorageService();
+      await objectStorageService.deleteObject(objectKey);
+      
+      console.log('Successfully deleted S3 object:', objectKey);
+      res.json({ success: true, message: "File deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      res.status(500).json({ message: "Failed to delete file" });
     }
   });
 
