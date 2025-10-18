@@ -20,11 +20,15 @@ export class S3ObjectStorageService {
     this.region = process.env.S3_REGION || 'us-east-1';
     this.cloudFrontDomain = process.env.CLOUDFRONT_DOMAIN || '';
     
+    // Try multiple environment variable names for compatibility
+    const accessKeyId = process.env.S3_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID || '';
+    const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY || '';
+    
     this.s3Client = new S3Client({
       region: this.region,
       credentials: {
-        accessKeyId: process.env.S3_ACCESS_KEY_ID || '',
-        secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || '',
+        accessKeyId,
+        secretAccessKey,
       },
     });
 
@@ -43,6 +47,10 @@ export class S3ObjectStorageService {
     const objectId = randomUUID();
     const objectKey = `uploads/${objectId}`;
 
+    console.log('🔗 Generating upload URL for:', objectKey);
+    console.log('  - Bucket:', this.bucketName);
+    console.log('  - Region:', this.region);
+
     const command = new PutObjectCommand({
       Bucket: this.bucketName,
       Key: objectKey,
@@ -52,9 +60,10 @@ export class S3ObjectStorageService {
 
     try {
       const signedUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 900 }); // 15 minutes
+      console.log('✅ Generated signed URL:', signedUrl.substring(0, 100) + '...');
       return signedUrl;
     } catch (error) {
-      console.error('Error generating upload URL:', error);
+      console.error('❌ Error generating upload URL:', error);
       throw new Error('Failed to generate upload URL');
     }
   }
