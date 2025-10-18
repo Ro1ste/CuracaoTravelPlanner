@@ -47,20 +47,15 @@ export class S3ObjectStorageService {
     const objectId = randomUUID();
     const objectKey = `uploads/${objectId}`;
 
-    console.log('🔗 Generating upload URL for:', objectKey);
-    console.log('  - Bucket:', this.bucketName);
-    console.log('  - Region:', this.region);
-
     const command = new PutObjectCommand({
       Bucket: this.bucketName,
       Key: objectKey,
       ContentType: 'application/octet-stream',
-      ACL: 'public-read', // Make uploaded files publicly readable
+      // ACL removed - bucket does not support ACLs
     });
 
     try {
       const signedUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 900 }); // 15 minutes
-      console.log('✅ Generated signed URL:', signedUrl.substring(0, 100) + '...');
       return signedUrl;
     } catch (error) {
       console.error('❌ Error generating upload URL:', error);

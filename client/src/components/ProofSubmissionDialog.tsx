@@ -33,7 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, CheckCircle, Image as ImageIcon } from "lucide-react";
+import { Upload, CheckCircle, Image as ImageIcon, X } from "lucide-react";
 
 const proofSubmissionSchema = z.object({
   contentType: z.enum(["image", "video"]),
