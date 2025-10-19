@@ -141,7 +141,7 @@ export function CompanyEvents() {
                     {event.description}
                   </p>
                   
-                  {event.youtubeUrl && (
+                  {event.youtubeUrl ? (
                     <Button
                       variant="outline"
                       size="sm"
@@ -152,6 +152,8 @@ export function CompanyEvents() {
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Watch Video
                     </Button>
+                  ) : (
+                    <div className="h-10"></div> // Spacer to maintain consistent button positioning
                   )}
                   
                   {registration ? (
