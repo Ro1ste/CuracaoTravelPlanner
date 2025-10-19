@@ -227,7 +227,7 @@ export class DatabaseStorage implements IStorage {
       const user = company.userId ? await this.getUser(company.userId) : null;
       
       // Get event registrations with the same email as the company
-      const eventRegistrations = await db.select().from(eventRegistrations).where(eq(eventRegistrations.email, company.email));
+      const eventRegistrationsList = await db.select().from(eventRegistrations).where(eq(eventRegistrations.email, company.email));
 
       // Start transaction
       await db.transaction(async (tx) => {
@@ -237,7 +237,7 @@ export class DatabaseStorage implements IStorage {
         }
 
         // Delete all event registrations with the same email as the company
-        if (eventRegistrations.length > 0) {
+        if (eventRegistrationsList.length > 0) {
           await tx.delete(eventRegistrations).where(eq(eventRegistrations.email, company.email));
         }
 
@@ -262,7 +262,7 @@ export class DatabaseStorage implements IStorage {
             totalCaloriesBurned: company.totalCaloriesBurned
           },
           proofsDeleted: proofs.length,
-          eventRegistrationsDeleted: eventRegistrations.length,
+          eventRegistrationsDeleted: eventRegistrationsList.length,
           userDeleted: !!user,
           userEmail: user?.email
         }
@@ -690,7 +690,7 @@ export class MemStorage implements IStorage {
             totalCaloriesBurned: company.totalCaloriesBurned
           },
           proofsDeleted: proofs.length,
-          eventRegistrationsDeleted: eventRegistrations.length,
+          eventRegistrationsDeleted: eventRegistrationsList.length,
           userDeleted: !!user,
           userEmail: user?.email
         }
