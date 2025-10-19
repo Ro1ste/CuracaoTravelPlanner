@@ -11,12 +11,14 @@ import {
   type InsertEvent,
   type EventRegistration,
   type InsertEventRegistration,
+  type PasswordResetToken,
   users,
   companies,
   tasks,
   taskProofs,
   events,
-  eventRegistrations
+  eventRegistrations,
+  passwordResetTokens
 } from "@shared/schema";
 import { eq, desc, sql } from "drizzle-orm";
 
@@ -68,6 +70,13 @@ export interface IStorage {
   createEventRegistration(registration: InsertEventRegistration): Promise<EventRegistration>;
   updateRegistrationStatus(id: string, status: 'approved' | 'rejected'): Promise<EventRegistration | undefined>;
   checkInRegistration(id: string): Promise<EventRegistration | undefined>;
+  
+  // Password reset operations
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createPasswordResetToken(token: { userId: string; token: string; expiresAt: Date }): Promise<PasswordResetToken>;
+  getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
+  markPasswordResetTokenAsUsed(id: string): Promise<void>;
+  updateUserPassword(userId: string, hashedPassword: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -391,6 +400,42 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return registration;
   }
+
+  // Password reset operations
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const db = await this.getDb();
+    const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    return result[0];
+  }
+
+  async createPasswordResetToken(token: { userId: string; token: string; expiresAt: Date }): Promise<PasswordResetToken> {
+    const db = await this.getDb();
+    const result = await db.insert(passwordResetTokens).values(token).returning();
+    return result[0];
+  }
+
+  async getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined> {
+    const db = await this.getDb();
+    const result = await db.select().from(passwordResetTokens).where(eq(passwordResetTokens.token, token)).limit(1);
+    return result[0];
+  }
+
+  async markPasswordResetTokenAsUsed(id: string): Promise<void> {
+    const db = await this.getDb();
+    await db.update(passwordResetTokens)
+      .set({ used: true })
+      .where(eq(passwordResetTokens.id, id));
+  }
+
+  async updateUserPassword(userId: string, hashedPassword: string): Promise<void> {
+    const db = await this.getDb();
+    await db.update(users)
+      .set({ 
+        password: hashedPassword,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
+  }
 }
 
 // In-memory storage for development/testing
@@ -401,6 +446,7 @@ export class MemStorage implements IStorage {
   private proofs: Map<string, TaskProof> = new Map();
   private events: Map<string, Event> = new Map();
   private eventRegistrations: Map<string, EventRegistration> = new Map();
+  private passwordResetTokens: Map<string, PasswordResetToken> = new Map();
 
   // User operations
   async getUser(id: string): Promise<User | undefined> {
@@ -774,6 +820,55 @@ export class MemStorage implements IStorage {
     };
     this.eventRegistrations.set(id, updated);
     return updated;
+  }
+
+  // Password reset operations
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    for (const user of this.users.values()) {
+      if (user.email === email) {
+        return user;
+      }
+    }
+    return undefined;
+  }
+
+  async createPasswordResetToken(token: { userId: string; token: string; expiresAt: Date }): Promise<PasswordResetToken> {
+    const resetToken: PasswordResetToken = {
+      id: crypto.randomUUID(),
+      userId: token.userId,
+      token: token.token,
+      expiresAt: token.expiresAt,
+      used: false,
+      createdAt: new Date(),
+    };
+    this.passwordResetTokens.set(resetToken.id, resetToken);
+    return resetToken;
+  }
+
+  async getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined> {
+    for (const resetToken of this.passwordResetTokens.values()) {
+      if (resetToken.token === token) {
+        return resetToken;
+      }
+    }
+    return undefined;
+  }
+
+  async markPasswordResetTokenAsUsed(id: string): Promise<void> {
+    const resetToken = this.passwordResetTokens.get(id);
+    if (resetToken) {
+      resetToken.used = true;
+      this.passwordResetTokens.set(id, resetToken);
+    }
+  }
+
+  async updateUserPassword(userId: string, hashedPassword: string): Promise<void> {
+    const user = this.users.get(userId);
+    if (user) {
+      user.password = hashedPassword;
+      user.updatedAt = new Date();
+      this.users.set(userId, user);
+    }
   }
 }
 

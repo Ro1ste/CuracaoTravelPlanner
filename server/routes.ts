@@ -9,7 +9,9 @@ import {
   proofReviewSchema,
   insertEventRegistrationSchema,
   companySignupSchema,
-  companyLoginSchema
+  companyLoginSchema,
+  passwordResetRequestSchema,
+  passwordResetConfirmSchema
 } from "@shared/schema";
 import { S3ObjectStorageService } from "./s3ObjectStorage";
 import { QRCodeService } from "./qrService";
@@ -107,6 +109,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     res.json({ success: true, message: "Logged out successfully" });
+  });
+
+  // Password reset request
+  app.post('/api/auth/password-reset-request', async (req, res) => {
+    try {
+      const { email } = passwordResetRequestSchema.parse(req.body);
+      
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // Don't reveal if email exists or not for security
+        return res.json({ 
+          success: true, 
+          message: "If an account with that email exists, a password reset link has been sent." 
+        });
+      }
+
+      // Generate reset token
+      const resetToken = nanoid(32);
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+      // Store reset token in database
+      await storage.createPasswordResetToken({
+        userId: user.id,
+        token: resetToken,
+        expiresAt,
+      });
+
+      // Generate reset URL
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://bepartofthemovement.online' 
+        : 'http://localhost:5003';
+      const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
+
+      // Send password reset email
+      const emailService = new EmailService();
+      await emailService.sendPasswordResetEmail(
+        user.email,
+        `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User',
+        resetToken,
+        resetUrl
+      );
+
+      res.json({ 
+        success: true, 
+        message: "If an account with that email exists, a password reset link has been sent." 
+      });
+    } catch (error: any) {
+      console.error("Password reset request error:", error);
+      res.status(400).json({ message: error.message || "Failed to process password reset request" });
+    }
+  });
+
+  // Password reset confirmation
+  app.post('/api/auth/password-reset-confirm', async (req, res) => {
+    try {
+      const { token, newPassword } = passwordResetConfirmSchema.parse(req.body);
+      
+      // Find and validate reset token
+      const resetToken = await storage.getPasswordResetToken(token);
+      if (!resetToken || resetToken.used || resetToken.expiresAt < new Date()) {
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+
+      // Get user
+      const user = await storage.getUser(resetToken.userId);
+      if (!user) {
+        return res.status(400).json({ message: "User not found" });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update user password
+      await storage.updateUserPassword(user.id, hashedPassword);
+
+      // Mark reset token as used
+      await storage.markPasswordResetTokenAsUsed(resetToken.id);
+
+      res.json({ 
+        success: true, 
+        message: "Password has been reset successfully. You can now log in with your new password." 
+      });
+    } catch (error: any) {
+      console.error("Password reset confirmation error:", error);
+      res.status(400).json({ message: error.message || "Failed to reset password" });
+    }
   });
 
   // Get current user

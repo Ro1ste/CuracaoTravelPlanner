@@ -149,16 +149,28 @@ export default function CompanyLogin() {
                   {loginMutation.isPending ? "Logging in..." : "Log In"}
                 </Button>
 
-                <div className="text-center text-sm text-muted-foreground">
-                  Don't have an account?{" "}
-                  <button
-                    type="button"
-                    className="text-primary hover:underline font-medium"
-                    onClick={() => setLocation("/signup")}
-                    data-testid="link-signup"
-                  >
-                    Sign up
-                  </button>
+                <div className="text-center text-sm text-muted-foreground space-y-2">
+                  <div>
+                    Don't have an account?{" "}
+                    <button
+                      type="button"
+                      className="text-primary hover:underline font-medium"
+                      onClick={() => setLocation("/signup")}
+                      data-testid="link-signup"
+                    >
+                      Sign up
+                    </button>
+                  </div>
+                  <div>
+                    <button
+                      type="button"
+                      className="text-primary hover:underline font-medium"
+                      onClick={() => setLocation("/password-reset")}
+                      data-testid="link-forgot-password"
+                    >
+                      Forgot your password?
+                    </button>
+                  </div>
                 </div>
               </div>
             </form>

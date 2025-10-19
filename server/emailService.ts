@@ -105,4 +105,55 @@ export class EmailService {
       html,
     });
   }
+
+  async sendPasswordResetEmail(to: string, name: string, resetToken: string, resetUrl: string): Promise<void> {
+    const subject = 'Password Reset Request - FDDK Platform';
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+        <div style="background-color: #211100; color: white; padding: 20px; text-align: center;">
+          <h1 style="margin: 0;">FDDK Platform</h1>
+          <p style="margin: 5px 0 0 0;">Password Reset Request</p>
+        </div>
+        <div style="padding: 20px; line-height: 1.6;">
+          <p>Hi ${name},</p>
+          <p>We received a request to reset your password for your FDDK Platform account.</p>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+            <h3 style="margin-top: 0; color: #211100;">Reset Your Password</h3>
+            <a href="${resetUrl}" style="display: inline-block; background-color: #211100; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Reset Password</a>
+          </div>
+          
+          <p><strong>Or copy and paste this link into your browser:</strong></p>
+          <p style="word-break: break-all; background-color: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace;">${resetUrl}</p>
+          
+          <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 6px; margin: 20px 0;">
+            <p style="margin: 0;"><strong>⚠️ Important Security Information:</strong></p>
+            <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+              <li>This link will expire in 1 hour for security reasons</li>
+              <li>If you didn't request this password reset, please ignore this email</li>
+              <li>Your password will not be changed until you click the link above</li>
+            </ul>
+          </div>
+          
+          <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
+          
+          <p>Best regards,<br/>FDDK Team</p>
+          
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+          <p style="font-size: 0.8em; color: #666;">
+            This is an automated message. Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    `;
+    
+    const text = `Password Reset Request - FDDK Platform\n\nHi ${name},\n\nWe received a request to reset your password for your FDDK Platform account.\n\nTo reset your password, please click the following link:\n${resetUrl}\n\nThis link will expire in 1 hour for security reasons.\n\nIf you didn't request this password reset, please ignore this email.\n\nBest regards,\nFDDK Team`;
+
+    await EmailService.sendEmail({
+      to,
+      subject,
+      text,
+      html,
+    });
+  }
 }

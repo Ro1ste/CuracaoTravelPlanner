@@ -25,6 +25,8 @@ import CompaniesManagement from "@/pages/CompaniesManagement";
 import AdministratorsManagement from "@/pages/AdministratorsManagement";
 import { TasksManagement } from "@/pages/TasksManagement";
 import { ProofReview } from "@/pages/ProofReview";
+import { PasswordResetRequest } from "@/pages/PasswordResetRequest";
+import { PasswordResetConfirm } from "@/pages/PasswordResetConfirm";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -44,6 +46,8 @@ function Router() {
         <Route path="/" component={Landing} />
         <Route path="/signup" component={CompanySignup} />
         <Route path="/login" component={CompanyLogin} />
+        <Route path="/password-reset" component={PasswordResetRequest} />
+        <Route path="/reset-password" component={PasswordResetConfirm} />
         <Route path="/e/:shortCode" component={EventRegistration} />
         <Route path="/event-registration" component={EventRegistration} />
         <Route path="/event-registration/:eventId" component={EventRegistration} />

@@ -113,6 +113,16 @@ export const eventRegistrations = pgTable("event_registrations", {
   approvedAt: timestamp("approved_at"),
 });
 
+// Password reset tokens table
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  token: varchar("token").unique().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: boolean("used").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Insert schemas using drizzle-zod
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
@@ -191,6 +201,20 @@ export const insertEventRegistrationSchema = createInsertSchema(eventRegistratio
   companyName: true,
 });
 
+// Password reset schemas
+export const passwordResetRequestSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
+export const passwordResetConfirmSchema = z.object({
+  token: z.string().min(1, "Reset token is required"),
+  newPassword: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
 
 // Proof review schema
 export const proofReviewSchema = z.object({
@@ -224,3 +248,7 @@ export type Event = typeof events.$inferSelect;
 
 export type InsertEventRegistration = z.infer<typeof insertEventRegistrationSchema>;
 export type EventRegistration = typeof eventRegistrations.$inferSelect;
+
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type PasswordResetRequest = z.infer<typeof passwordResetRequestSchema>;
+export type PasswordResetConfirm = z.infer<typeof passwordResetConfirmSchema>;
