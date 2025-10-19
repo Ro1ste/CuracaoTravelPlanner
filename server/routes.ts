@@ -892,6 +892,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update event (admin only)
+  app.patch('/api/events/:id', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const eventId = req.params.id;
+      const updates = req.body;
+      
+      const updatedEvent = await storage.updateEvent(eventId, updates);
+      if (!updatedEvent) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      
+      res.json(updatedEvent);
+    } catch (error) {
+      console.error("Error updating event:", error);
+      res.status(500).json({ message: "Failed to update event" });
+    }
+  });
+
   // ========== PUBLIC CHECK-IN ROUTE ==========
   app.get('/checkin/:token', async (req, res) => {
     try {

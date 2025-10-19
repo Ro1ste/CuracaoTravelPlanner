@@ -21,6 +21,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 export function EventsManagement() {
   const { toast } = useToast();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [copiedEventId, setCopiedEventId] = useState<string | null>(null);
 
   // Fetch events
@@ -97,8 +99,46 @@ export function EventsManagement() {
     },
   });
 
+  const updateEventMutation = useMutation({
+    mutationFn: async (data: {
+      id: string;
+      title: string;
+      description: string;
+      eventDate: string;
+      youtubeUrl?: string;
+      brandingColor: string;
+      emailSubject?: string;
+      emailBodyText?: string;
+    }) => {
+      const { id, ...updateData } = data;
+      const res = await apiRequest("PATCH", `/api/events/${id}`, updateData);
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Event Updated!",
+        description: "Your event has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+      setEditDialogOpen(false);
+      setEditingEvent(null);
+      form.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Update Event",
+        description: error.message || "Something went wrong",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = (data: any) => {
-    createEventMutation.mutate(data);
+    if (editingEvent) {
+      updateEventMutation.mutate({ ...data, id: editingEvent.id });
+    } else {
+      createEventMutation.mutate(data);
+    }
   };
 
   const getShareableLink = (event: Event) => {
@@ -122,6 +162,20 @@ export function EventsManagement() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleEditEvent = (event: Event) => {
+    setEditingEvent(event);
+    form.reset({
+      title: event.title,
+      description: event.description || "",
+      eventDate: event.eventDate ? new Date(event.eventDate).toISOString().slice(0, 16) : "",
+      youtubeUrl: event.youtubeUrl || "",
+      brandingColor: event.brandingColor || "#211100",
+      emailSubject: event.emailSubject || "",
+      emailBodyText: event.emailBodyText || ""
+    });
+    setEditDialogOpen(true);
   };
 
   return (
@@ -309,6 +363,133 @@ export function EventsManagement() {
             </Form>
           </DialogContent>
         </Dialog>
+
+        {/* Edit Event Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit Event</DialogTitle>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Event Title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter event title" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Enter event description" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="eventDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Event Date & Time</FormLabel>
+                      <FormControl>
+                        <Input type="datetime-local" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="youtubeUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>YouTube URL (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="https://youtube.com/watch?v=..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="brandingColor"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Branding Color</FormLabel>
+                      <FormControl>
+                        <Input type="color" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="emailSubject"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email Subject (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Your Registration for {Event Title} is Approved!" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="emailBodyText"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email Body Text (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Dear {Attendee Name},&#10;&#10;Your registration for {Event Title} has been approved!&#10;&#10;Please find your QR code below. You'll need to present this at the event for check-in.&#10;&#10;We look forward to seeing you!&#10;&#10;Best regards,&#10;FDDK Team" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setEditDialogOpen(false);
+                      setEditingEvent(null);
+                      form.reset();
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={updateEventMutation.isPending}
+                    data-testid="button-update-event"
+                  >
+                    {updateEventMutation.isPending ? "Updating..." : "Update Event"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Events List */}
@@ -360,10 +541,20 @@ export function EventsManagement() {
                         </Badge>
                       </div>
                     </div>
-                    <div
-                      className="w-12 h-12 rounded-lg"
-                      style={{ backgroundColor: event.brandingColor || "#ff6600" }}
-                    />
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditEvent(event)}
+                        data-testid={`button-edit-event-${event.id}`}
+                      >
+                        Edit
+                      </Button>
+                      <div
+                        className="w-12 h-12 rounded-lg"
+                        style={{ backgroundColor: event.brandingColor || "#ff6600" }}
+                      />
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
