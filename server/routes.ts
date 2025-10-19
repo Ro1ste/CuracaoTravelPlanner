@@ -298,6 +298,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ========== TASK ROUTES ==========
   app.get('/api/tasks', isAuthenticated, async (req, res) => {
     try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      // Admins can see all tasks
+      if (user?.isAdmin) {
+        const allTasks = await storage.getAllTasks();
+        return res.json(allTasks);
+      }
+      
+      // For regular users, check if their company is registered for any events
+      const company = await storage.getCompanyByUserId(userId);
+      if (!company) {
+        return res.status(400).json({ message: "Company profile required to view tasks" });
+      }
+      
+      // Check if company is registered for any events
+      const hasEventRegistrations = await storage.hasEventRegistrations(company.email);
+      if (!hasEventRegistrations) {
+        return res.json([]); // Return empty array if no event registrations
+      }
+      
+      // Company is registered for events, return all tasks
       const allTasks = await storage.getAllTasks();
       res.json(allTasks);
     } catch (error) {
@@ -867,6 +889,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching event by short code:", error);
       res.status(500).json({ message: "Failed to fetch event" });
+    }
+  });
+
+  // ========== PUBLIC CHECK-IN ROUTE ==========
+  app.get('/checkin/:token', async (req, res) => {
+    try {
+      const token = req.params.token;
+      
+      // Verify the QR code token
+      const tokenParts = token.split('.');
+      if (tokenParts.length !== 2) {
+        return res.status(400).send(`
+          <html>
+            <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+              <h1 style="color: #dc3545;">Invalid QR Code</h1>
+              <p>This QR code is not valid. Please contact the event organizers.</p>
+            </body>
+          </html>
+        `);
+      }
+      
+      const [data, signature] = tokenParts;
+      const [attendeeId, eventId, nonce, timestamp] = data.split(':');
+      
+      if (!attendeeId || !eventId) {
+        return res.status(400).send(`
+          <html>
+            <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+              <h1 style="color: #dc3545;">Invalid QR Code</h1>
+              <p>This QR code is missing required information.</p>
+            </body>
+          </html>
+        `);
+      }
+      
+      // Verify token signature
+      const isValidToken = QRCodeService.verifyToken(token, attendeeId, eventId);
+      if (!isValidToken) {
+        return res.status(401).send(`
+          <html>
+            <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+              <h1 style="color: #dc3545;">Invalid or Expired QR Code</h1>
+              <p>This QR code is invalid or has expired. Please contact the event organizers for a new QR code.</p>
+            </body>
+          </html>
+        `);
+      }
+      
+      // Get the registration
+      const registration = await storage.getEventRegistrationById(attendeeId);
+      if (!registration) {
+        return res.status(404).send(`
+          <html>
+            <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+              <h1 style="color: #dc3545;">Registration Not Found</h1>
+              <p>This registration could not be found. Please contact the event organizers.</p>
+            </body>
+          </html>
+        `);
+      }
+      
+      // Check if already checked in
+      if (registration.checkedIn) {
+        return res.send(`
+          <html>
+            <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+              <h1 style="color: #28a745;">Already Checked In</h1>
+              <p>Hello ${registration.firstName} ${registration.lastName}!</p>
+              <p>You have already been checked in for this event.</p>
+              <p style="color: #666; font-size: 14px;">Checked in at: ${registration.checkedInAt ? new Date(registration.checkedInAt).toLocaleString() : 'Unknown'}</p>
+            </body>
+          </html>
+        `);
+      }
+      
+      // Check in the attendee
+      const checkedInRegistration = await storage.checkInRegistration(attendeeId);
+      
+      if (checkedInRegistration) {
+        return res.send(`
+          <html>
+            <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+              <h1 style="color: #28a745;">Check-in Successful!</h1>
+              <p>Hello ${registration.firstName} ${registration.lastName}!</p>
+              <p>You have been successfully checked in for the event.</p>
+              <p style="color: #666; font-size: 14px;">Checked in at: ${new Date().toLocaleString()}</p>
+              <div style="margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 8px; display: inline-block;">
+                <p style="margin: 0; font-weight: bold;">Welcome to the event!</p>
+                <p style="margin: 5px 0 0 0; color: #666;">Please proceed to the event area.</p>
+              </div>
+            </body>
+          </html>
+        `);
+      } else {
+        return res.status(500).send(`
+          <html>
+            <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+              <h1 style="color: #dc3545;">Check-in Failed</h1>
+              <p>There was an error processing your check-in. Please contact the event organizers.</p>
+            </body>
+          </html>
+        `);
+      }
+    } catch (error) {
+      console.error("Error processing public check-in:", error);
+      return res.status(500).send(`
+        <html>
+          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+            <h1 style="color: #dc3545;">Check-in Error</h1>
+            <p>There was an error processing your check-in. Please contact the event organizers.</p>
+          </body>
+        </html>
+      `);
     }
   });
 

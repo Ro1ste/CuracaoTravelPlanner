@@ -26,8 +26,11 @@ export class QRCodeService {
 
   static async generateQRCode(payload: QRCodePayload): Promise<string> {
     try {
-      const dataString = JSON.stringify(payload);
-      const qrCodeDataUrl = await QRCode.toDataURL(dataString, {
+      // Generate URL for public check-in instead of JSON data
+      const baseUrl = process.env.BASE_URL || 'http://localhost:5003';
+      const checkInUrl = `${baseUrl}/checkin/${payload.token}`;
+      
+      const qrCodeDataUrl = await QRCode.toDataURL(checkInUrl, {
         errorCorrectionLevel: 'M',
         type: 'image/png',
         width: 300,

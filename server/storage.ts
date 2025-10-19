@@ -67,6 +67,7 @@ export interface IStorage {
   
   // Event registration operations
   getEventRegistrations(eventId: string): Promise<EventRegistration[]>;
+  hasEventRegistrations(email: string): Promise<boolean>;
   getEventRegistrationById(id: string): Promise<EventRegistration | undefined>;
   createEventRegistration(registration: InsertEventRegistration): Promise<EventRegistration>;
   updateRegistrationStatus(id: string, status: 'approved' | 'rejected'): Promise<EventRegistration | undefined>;
@@ -436,6 +437,12 @@ export class DatabaseStorage implements IStorage {
   async getEventRegistrations(eventId: string): Promise<EventRegistration[]> {
     const db = await this.getDb();
     return await db.select().from(eventRegistrations).where(eq(eventRegistrations.eventId, eventId));
+  }
+
+  async hasEventRegistrations(email: string): Promise<boolean> {
+    const db = await this.getDb();
+    const registrations = await db.select().from(eventRegistrations).where(eq(eventRegistrations.email, email));
+    return registrations.length > 0;
   }
 
   async getEventRegistrationById(id: string): Promise<EventRegistration | undefined> {
@@ -888,6 +895,12 @@ export class MemStorage implements IStorage {
   async getEventRegistrations(eventId: string): Promise<EventRegistration[]> {
     return Array.from(this.eventRegistrations.values()).filter(
       reg => reg.eventId === eventId
+    );
+  }
+
+  async hasEventRegistrations(email: string): Promise<boolean> {
+    return Array.from(this.eventRegistrations.values()).some(
+      reg => reg.email === email
     );
   }
 
