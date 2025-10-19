@@ -156,4 +156,62 @@ export class EmailService {
       html,
     });
   }
+
+  async sendCompanyRemovalNotification(to: string, companyName: string, deletedData: any): Promise<void> {
+    const subject = 'Account Removal Notice - FDDK Platform';
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+        <div style="background-color: #dc3545; color: white; padding: 20px; text-align: center;">
+          <h1 style="margin: 0;">FDDK Platform</h1>
+          <p style="margin: 5px 0 0 0;">Account Removal Notice</p>
+        </div>
+        <div style="padding: 20px; line-height: 1.6;">
+          <p>Dear ${companyName} Team,</p>
+          <p>We are writing to inform you that your company account has been removed from the FDDK Corporate Wellness & Event Management Platform.</p>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #dc3545;">Account Details Removed:</h3>
+            <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+              <li><strong>Company:</strong> ${deletedData.company.name}</li>
+              <li><strong>Email:</strong> ${deletedData.company.email}</li>
+              <li><strong>Total Points Earned:</strong> ${deletedData.company.totalPoints || 0}</li>
+              <li><strong>Total Calories Burned:</strong> ${deletedData.company.totalCaloriesBurned || 0}</li>
+              <li><strong>Proof Submissions:</strong> ${deletedData.proofsDeleted} submissions removed</li>
+              <li><strong>User Account:</strong> ${deletedData.userDeleted ? 'Removed' : 'Not found'}</li>
+            </ul>
+          </div>
+          
+          <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 6px; margin: 20px 0;">
+            <p style="margin: 0;"><strong>⚠️ Important Information:</strong></p>
+            <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+              <li>All your company data has been permanently deleted from our system</li>
+              <li>You will no longer be able to access the platform with this account</li>
+              <li>All associated proof submissions and points have been removed</li>
+              <li>This action cannot be undone</li>
+            </ul>
+          </div>
+          
+          <p>If you believe this removal was made in error or if you have any questions, please contact our support team immediately.</p>
+          
+          <p>We thank you for your participation in the FDDK Corporate Wellness Program.</p>
+          
+          <p>Best regards,<br/>FDDK Team</p>
+          
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+          <p style="font-size: 0.8em; color: #666;">
+            This is an automated message. Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    `;
+    
+    const text = `Account Removal Notice - FDDK Platform\n\nDear ${companyName} Team,\n\nWe are writing to inform you that your company account has been removed from the FDDK Corporate Wellness & Event Management Platform.\n\nAccount Details Removed:\n- Company: ${deletedData.company.name}\n- Email: ${deletedData.company.email}\n- Total Points Earned: ${deletedData.company.totalPoints || 0}\n- Total Calories Burned: ${deletedData.company.totalCaloriesBurned || 0}\n- Proof Submissions: ${deletedData.proofsDeleted} submissions removed\n- User Account: ${deletedData.userDeleted ? 'Removed' : 'Not found'}\n\nImportant Information:\n- All your company data has been permanently deleted from our system\n- You will no longer be able to access the platform with this account\n- All associated proof submissions and points have been removed\n- This action cannot be undone\n\nIf you believe this removal was made in error or if you have any questions, please contact our support team immediately.\n\nWe thank you for your participation in the FDDK Corporate Wellness Program.\n\nBest regards,\nFDDK Team`;
+
+    await EmailService.sendEmail({
+      to,
+      subject,
+      text,
+      html,
+    });
+  }
 }

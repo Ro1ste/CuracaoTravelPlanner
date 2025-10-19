@@ -243,6 +243,8 @@ export function AttendeesManagement() {
                       className={`${
                         justCheckedInAttendee === attendee.id
                           ? 'bg-green-50 border-green-200 animate-pulse'
+                          : attendee.checkedIn
+                          ? 'bg-green-50/30 border-green-200'
                           : ''
                       }`}
                     >
@@ -311,7 +313,7 @@ export function AttendeesManagement() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
-                          {attendee.status === 'pending' && (
+                          {attendee.status === 'pending' && !attendee.checkedIn && (
                             <>
                               <Button
                                 size="sm"
@@ -335,7 +337,7 @@ export function AttendeesManagement() {
                               </Button>
                             </>
                           )}
-                          {attendee.status === 'approved' && (
+                          {attendee.status === 'approved' && !attendee.checkedIn && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -346,6 +348,11 @@ export function AttendeesManagement() {
                               <Mail className="h-4 w-4 mr-1" />
                               Resend QR Code
                             </Button>
+                          )}
+                          {attendee.checkedIn && (
+                            <Badge variant="outline" className="bg-green-500 text-white border-green-500 text-sm font-semibold px-3 py-1">
+                              ✓ Checked In
+                            </Badge>
                           )}
                         </div>
                       </TableCell>

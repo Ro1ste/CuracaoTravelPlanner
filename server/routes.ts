@@ -21,7 +21,7 @@ import bcrypt from "bcrypt";
 import { nanoid } from "nanoid";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // ========== AUTHENTICATION ROUTES ==========
+
   
   // Company signup
   app.post('/api/auth/signup', async (req, res) => {
@@ -601,6 +601,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error updating password:", error);
       res.status(500).json({ message: error.message || "Failed to update password" });
+    }
+  });
+
+  // Remove company (admin only)
+  app.delete('/api/admin/companies/:id', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const companyId = req.params.id;
+      
+      // Get company details before deletion for email notification
+      const company = await storage.getCompany(companyId);
+      if (!company) {
+        return res.status(404).json({ message: "Company not found" });
+      }
+
+      // Remove the company and all associated data
+      const result = await storage.removeCompany(companyId);
+      
+      if (!result.success) {
+        return res.status(400).json({ message: result.message });
+      }
+
+      // Send notification email to the company (if email service is available)
+      try {
+        const emailService = new EmailService();
+        await emailService.sendCompanyRemovalNotification(
+          company.email,
+          company.name,
+          result.deletedData
+        );
+        console.log(`✅ Company removal notification sent to ${company.email}`);
+      } catch (emailError) {
+        console.warn("Failed to send company removal notification:", emailError);
+        // Continue even if email fails
+      }
+
+      res.json({
+        success: true,
+        message: result.message,
+        deletedData: result.deletedData
+      });
+    } catch (error: any) {
+      console.error("Error removing company:", error);
+      res.status(500).json({ message: error.message || "Failed to remove company" });
     }
   });
 

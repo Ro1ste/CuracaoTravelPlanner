@@ -40,6 +40,7 @@ export interface IStorage {
   updateCompany(id: string, updates: Partial<UpsertCompany>): Promise<Company | undefined>;
   updateCompanyPoints(id: string, pointsToAdd: number): Promise<Company | undefined>;
   updateCompanyCalories(id: string, caloriesToAdd: number): Promise<Company | undefined>;
+  removeCompany(id: string): Promise<{ success: boolean; message: string; deletedData?: any }>;
   
   // Task operations
   getAllTasks(): Promise<Task[]>;
@@ -211,6 +212,61 @@ export class DatabaseStorage implements IStorage {
     return company;
   }
 
+  async removeCompany(id: string): Promise<{ success: boolean; message: string; deletedData?: any }> {
+    const db = await this.getDb();
+    
+    try {
+      // Get company details before deletion for logging
+      const company = await this.getCompany(id);
+      if (!company) {
+        return { success: false, message: "Company not found" };
+      }
+
+      // Get related data for logging
+      const proofs = await this.getProofsByCompany(id);
+      const user = company.userId ? await this.getUser(company.userId) : null;
+
+      // Start transaction
+      await db.transaction(async (tx) => {
+        // Delete all proofs associated with this company
+        if (proofs.length > 0) {
+          await tx.delete(taskProofs).where(eq(taskProofs.companyId, id));
+        }
+
+        // Delete the company
+        await tx.delete(companies).where(eq(companies.id, id));
+
+        // Optionally delete the associated user account
+        if (company.userId && user) {
+          await tx.delete(users).where(eq(users.id, company.userId));
+        }
+      });
+
+      return {
+        success: true,
+        message: `Company "${company.name}" and all associated data have been successfully removed`,
+        deletedData: {
+          company: {
+            id: company.id,
+            name: company.name,
+            email: company.email,
+            totalPoints: company.totalPoints,
+            totalCaloriesBurned: company.totalCaloriesBurned
+          },
+          proofsDeleted: proofs.length,
+          userDeleted: !!user,
+          userEmail: user?.email
+        }
+      };
+    } catch (error) {
+      console.error('Error removing company:', error);
+      return { 
+        success: false, 
+        message: `Failed to remove company: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      };
+    }
+  }
+
   // Task operations
   async getAllTasks(): Promise<Task[]> {
     const db = await this.getDb();
@@ -304,7 +360,18 @@ export class DatabaseStorage implements IStorage {
 
   async getActiveEvents(): Promise<Event[]> {
     const db = await this.getDb();
-    return await db.select().from(events).where(eq(events.isActive, true)).orderBy(desc(events.eventDate));
+    const activeEvents = await db.select().from(events).where(eq(events.isActive, true)).orderBy(desc(events.eventDate));
+    
+    // Add registration counts to each event
+    return Promise.all(activeEvents.map(async (event) => {
+      const registrations = await db.select().from(eventRegistrations).where(eq(eventRegistrations.eventId, event.id));
+      return {
+        ...event,
+        totalRegistrations: registrations.length,
+        approvedRegistrations: registrations.filter(r => r.status === 'approved').length,
+        checkedInRegistrations: registrations.filter(r => r.checkedIn).length,
+      } as any; // TypeScript workaround for adding dynamic fields
+    }));
   }
 
   async createEvent(eventData: InsertEvent & { shortCode?: string }): Promise<Event> {
@@ -573,6 +640,58 @@ export class MemStorage implements IStorage {
     };
     this.companies.set(id, updated);
     return updated;
+  }
+
+  async removeCompany(id: string): Promise<{ success: boolean; message: string; deletedData?: any }> {
+    try {
+      // Get company details before deletion
+      const company = this.companies.get(id);
+      if (!company) {
+        return { success: false, message: "Company not found" };
+      }
+
+      // Get related data for logging
+      const proofs = await this.getProofsByCompany(id);
+      const user = company.userId ? this.users.get(company.userId) : null;
+
+      // Delete all proofs associated with this company
+      for (const [proofId, proof] of this.proofs.entries()) {
+        if (proof.companyId === id) {
+          this.proofs.delete(proofId);
+        }
+      }
+
+      // Delete the company
+      this.companies.delete(id);
+
+      // Optionally delete the associated user account
+      if (company.userId && user) {
+        this.users.delete(company.userId);
+      }
+
+      return {
+        success: true,
+        message: `Company "${company.name}" and all associated data have been successfully removed`,
+        deletedData: {
+          company: {
+            id: company.id,
+            name: company.name,
+            email: company.email,
+            totalPoints: company.totalPoints,
+            totalCaloriesBurned: company.totalCaloriesBurned
+          },
+          proofsDeleted: proofs.length,
+          userDeleted: !!user,
+          userEmail: user?.email
+        }
+      };
+    } catch (error) {
+      console.error('Error removing company:', error);
+      return { 
+        success: false, 
+        message: `Failed to remove company: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      };
+    }
   }
 
   // Task operations
