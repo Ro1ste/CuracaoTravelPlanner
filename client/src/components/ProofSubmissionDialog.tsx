@@ -80,7 +80,7 @@ export function ProofSubmissionDialog({
     // If no files, clear everything
     if (files.length === 0) {
       // Delete all uploaded files from S3
-      for (const [fileName, { url }] of uploadedFiles.entries()) {
+      for (const [fileName, { url }] of Array.from(uploadedFiles.entries())) {
         try {
           await S3UploadService.deleteFile(url);
         } catch (error) {
@@ -123,7 +123,7 @@ export function ProofSubmissionDialog({
 
     // Find files that were removed and delete them from S3
     const removedFiles: string[] = [];
-    for (const [fileName, { url }] of uploadedFiles.entries()) {
+    for (const [fileName, { url }] of Array.from(uploadedFiles.entries())) {
       if (!files.some(f => f.name === fileName)) {
         removedFiles.push(fileName);
         try {
@@ -417,7 +417,7 @@ export function ProofSubmissionDialog({
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  setUploadedUrls([]);
+                  setUploadedFiles(new Map());
                   onOpenChange(false);
                 }}
                 data-testid="button-cancel"

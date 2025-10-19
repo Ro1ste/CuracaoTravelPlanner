@@ -14,7 +14,6 @@ export default function EventRegistrationFormExample() {
     <div className="p-4">
       <EventRegistrationForm
         eventTitle="Corporate Wellness Summit 2024"
-        eventDescription="Join us for an inspiring day of wellness workshops, networking, and team building activities."
         onSubmit={handleSubmit}
         isSubmitting={false}
       />

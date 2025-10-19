@@ -67,7 +67,7 @@ export const isAuthenticated = async (req: Request, res: Response, next: NextFun
     }
     
     // Handle different token payload structures
-    const userId = payload.userId || payload.id;
+    const userId = (payload as any).userId || (payload as any).id;
     
     if (!userId) {
       return res.status(401).json({ message: 'Invalid token payload' });
@@ -83,8 +83,8 @@ export const isAuthenticated = async (req: Request, res: Response, next: NextFun
     (req as any).user = {
       id: user.id,
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
+      firstName: user.firstName || undefined,
+      lastName: user.lastName || undefined,
       isAdmin: user.isAdmin || false,
     };
     
@@ -123,8 +123,8 @@ export async function loginUser(email: string, password: string): Promise<{ user
     const authUser: AuthUser = {
       id: user.id,
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
+      firstName: user.firstName || undefined,
+      lastName: user.lastName || undefined,
       isAdmin: user.isAdmin || false,
     };
     
@@ -167,8 +167,8 @@ export async function registerUser(userData: {
     const authUser: AuthUser = {
       id: user.id,
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
+      firstName: user.firstName || undefined,
+      lastName: user.lastName || undefined,
       isAdmin: user.isAdmin || false,
     };
     
