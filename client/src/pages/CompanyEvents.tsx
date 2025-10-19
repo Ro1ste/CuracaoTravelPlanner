@@ -136,68 +136,70 @@ export function CompanyEvents() {
                     )}
                   </div>
                 </CardHeader>
-                <CardContent className="flex-1 space-y-4">
-                  <p className="text-sm text-muted-foreground line-clamp-3">
-                    {event.description}
-                  </p>
-                  
-                  {event.youtubeUrl ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => window.open(event.youtubeUrl!, '_blank')}
-                      data-testid={`watch-video-${event.id}`}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Watch Video
-                    </Button>
-                  ) : (
-                    <div className="h-10"></div> // Spacer to maintain consistent button positioning
-                  )}
-                  
-                  {registration ? (
-                    <div className="space-y-2">
-                      {registration.status === 'approved' && !registration.checkedIn && (
-                        <div className="text-center text-sm text-muted-foreground">
-                          <p>✅ Registration approved! Check your email for QR code.</p>
-                        </div>
-                      )}
-                      {registration.status === 'pending' && (
-                        <div className="text-center text-sm text-muted-foreground">
-                          <p>⏳ Registration pending approval</p>
-                        </div>
-                      )}
-                      {registration.status === 'rejected' && (
-                        <div className="text-center text-sm text-muted-foreground">
-                          <p>❌ Registration was rejected</p>
-                        </div>
-                      )}
-                      {registration.checkedIn && (
-                        <div className="text-center text-sm text-muted-foreground">
-                          <p>🎉 You've checked in for this event!</p>
-                        </div>
-                      )}
+                <CardContent className="flex-1 flex flex-col">
+                  <div className="flex-1 space-y-4">
+                    <p className="text-sm text-muted-foreground line-clamp-3">
+                      {event.description}
+                    </p>
+                    
+                    {event.youtubeUrl && (
                       <Button
                         variant="outline"
+                        size="sm"
                         className="w-full"
-                        disabled
-                        data-testid={`registered-${event.id}`}
+                        onClick={() => window.open(event.youtubeUrl!, '_blank')}
+                        data-testid={`watch-video-${event.id}`}
                       >
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Already Registered
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Watch Video
                       </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      className="w-full"
-                      onClick={() => window.open(`/event-registration/${event.id}`, '_blank')}
-                      data-testid={`register-${event.id}`}
-                    >
-                      <Users className="h-4 w-4 mr-2" />
-                      Register for Event
-                    </Button>
-                  )}
+                    )}
+                  </div>
+                  
+                  <div className="mt-4">
+                    {registration ? (
+                      <div className="space-y-2">
+                        {registration.status === 'approved' && !registration.checkedIn && (
+                          <div className="text-center text-sm text-muted-foreground">
+                            <p>✅ Registration approved! Check your email for QR code.</p>
+                          </div>
+                        )}
+                        {registration.status === 'pending' && (
+                          <div className="text-center text-sm text-muted-foreground">
+                            <p>⏳ Registration pending approval</p>
+                          </div>
+                        )}
+                        {registration.status === 'rejected' && (
+                          <div className="text-center text-sm text-muted-foreground">
+                            <p>❌ Registration was rejected</p>
+                          </div>
+                        )}
+                        {registration.checkedIn && (
+                          <div className="text-center text-sm text-muted-foreground">
+                            <p>🎉 You've checked in for this event!</p>
+                          </div>
+                        )}
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          disabled
+                          data-testid={`registered-${event.id}`}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Already Registered
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        className="w-full"
+                        onClick={() => window.open(`/event-registration/${event.id}`, '_blank')}
+                        data-testid={`register-${event.id}`}
+                      >
+                        <Users className="h-4 w-4 mr-2" />
+                        Register for Event
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             );
