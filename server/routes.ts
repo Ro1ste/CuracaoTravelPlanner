@@ -1023,6 +1023,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get company's event registrations
+  app.get('/api/company/registrations', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const company = await storage.getCompanyByUserId(userId);
+      
+      if (!company) {
+        return res.status(400).json({ message: "Company profile required" });
+      }
+      
+      // Get all event registrations for this company's email
+      const allEvents = await storage.getAllEvents();
+      const companyRegistrations = [];
+      
+      for (const event of allEvents) {
+        const eventRegistrations = await storage.getEventRegistrations(event.id);
+        const companyRegistration = eventRegistrations.find(reg => reg.email === company.email);
+        if (companyRegistration) {
+          companyRegistrations.push(companyRegistration);
+        }
+      }
+      
+      res.json(companyRegistrations);
+    } catch (error) {
+      console.error("Error fetching company registrations:", error);
+      res.status(500).json({ message: "Failed to fetch registrations" });
+    }
+  });
+
   // Get event registrations (admin only)
   app.get('/api/events/:id/registrations', isAuthenticated, isAdmin, async (req, res) => {
     try {
