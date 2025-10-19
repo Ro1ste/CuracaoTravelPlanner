@@ -225,12 +225,20 @@ export class DatabaseStorage implements IStorage {
       // Get related data for logging
       const proofs = await this.getProofsByCompany(id);
       const user = company.userId ? await this.getUser(company.userId) : null;
+      
+      // Get event registrations with the same email as the company
+      const eventRegistrations = await db.select().from(eventRegistrations).where(eq(eventRegistrations.email, company.email));
 
       // Start transaction
       await db.transaction(async (tx) => {
         // Delete all proofs associated with this company
         if (proofs.length > 0) {
           await tx.delete(taskProofs).where(eq(taskProofs.companyId, id));
+        }
+
+        // Delete all event registrations with the same email as the company
+        if (eventRegistrations.length > 0) {
+          await tx.delete(eventRegistrations).where(eq(eventRegistrations.email, company.email));
         }
 
         // Delete the company
@@ -254,6 +262,7 @@ export class DatabaseStorage implements IStorage {
             totalCaloriesBurned: company.totalCaloriesBurned
           },
           proofsDeleted: proofs.length,
+          eventRegistrationsDeleted: eventRegistrations.length,
           userDeleted: !!user,
           userEmail: user?.email
         }
@@ -681,6 +690,7 @@ export class MemStorage implements IStorage {
             totalCaloriesBurned: company.totalCaloriesBurned
           },
           proofsDeleted: proofs.length,
+          eventRegistrationsDeleted: eventRegistrations.length,
           userDeleted: !!user,
           userEmail: user?.email
         }
