@@ -51,10 +51,7 @@ export function AdminDashboard() {
   };
 
   const handleViewCompanies = () => {
-    toast({
-      title: "Navigation",
-      description: "Company management feature coming soon",
-    });
+    setLocation("/companies");
   };
 
   const handleViewEvents = () => {
