@@ -27,8 +27,11 @@ export class QRCodeService {
   static async generateQRCode(payload: QRCodePayload): Promise<string> {
     try {
       // Generate URL for public check-in instead of JSON data
-      const baseUrl = process.env.BASE_URL || 'http://localhost:5003';
+      // Use production URL from environment, fallback to localhost for development
+      const baseUrl = process.env.BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://bepartofthemovement.online' : 'http://localhost:5003');
       const checkInUrl = `${baseUrl}/checkin/${payload.token}`;
+      
+      console.log(`🔗 Generating QR code with URL: ${checkInUrl}`);
       
       const qrCodeDataUrl = await QRCode.toDataURL(checkInUrl, {
         errorCorrectionLevel: 'M',
