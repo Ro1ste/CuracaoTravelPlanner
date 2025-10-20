@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Award, Users, Calendar, BarChart3, ArrowRight, CheckCircle } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import eiswLogo from "@/assets/eisw-logo.jpeg";
+import ciswLogo from "@/assets/cisw.jpeg";
 import fitnessBackground from "@assets/stock_images/man_and_woman_doing__cb8dae4c.jpg";
 import { useLocation } from "wouter";
 
@@ -59,8 +59,8 @@ export function Landing() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img 
-                src={eiswLogo} 
-                alt="EISW Logo" 
+                src={ciswLogo} 
+                alt="CISW Logo" 
                 className="h-24 w-auto"
                 data-testid="logo-eisw"
               />

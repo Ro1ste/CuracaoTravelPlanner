@@ -10,7 +10,7 @@ import { useRoute, useLocation } from "wouter";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import type { Event, EventRegistration } from "@shared/schema";
-import eiswLogo from "@/assets/eisw-logo.jpeg";
+import ciswLogo from "@/assets/cisw.jpeg";
 
 // Helper function to convert YouTube URL to embed URL
 const getYouTubeEmbedUrl = (url: string): string => {
@@ -139,7 +139,7 @@ export function EventRegistration() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <img src={eiswLogo} alt="EISW Logo" className="h-12 w-12 rounded-lg object-cover" />
+              <img src={ciswLogo} alt="CISW Logo" className="h-12 w-12 rounded-lg object-cover" />
               <div>
                 <h1 className="text-2xl font-bold">Curacao International Sports Week</h1>
                 <p className="text-muted-foreground">Corporate Wellness Platform</p>
@@ -235,8 +235,8 @@ export function EventRegistration() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img 
-                src={eiswLogo} 
-                alt="EISW Logo" 
+                src={ciswLogo} 
+                alt="CISW Logo" 
                 className="h-16 w-auto"
                 data-testid="logo-eisw"
               />
