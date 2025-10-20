@@ -2,7 +2,7 @@ import { EventRegistrationForm } from "@/components/EventRegistrationForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, CheckCircle, Clock, ArrowLeft } from "lucide-react";
+import { Calendar, MapPin, CheckCircle, Clock, ArrowLeft, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -282,6 +282,22 @@ export function EventRegistration() {
                     </span>
                   </div>
                 </div>
+
+                {/* YouTube Video Section */}
+                {event.youtubeUrl && (
+                  <div className="mt-6">
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="w-full"
+                      onClick={() => window.open(event.youtubeUrl!, '_blank')}
+                      data-testid="watch-video-button"
+                    >
+                      <ExternalLink className="h-5 w-5 mr-2" />
+                      Watch Event Video
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Additional Event Info Card */}
