@@ -12,6 +12,17 @@ import { useAuth } from "@/hooks/useAuth";
 import type { Event, EventRegistration } from "@shared/schema";
 import eiswLogo from "@/assets/eisw-logo.jpeg";
 
+// Helper function to convert YouTube URL to embed URL
+const getYouTubeEmbedUrl = (url: string): string => {
+  const videoId = url.includes('youtu.be/') 
+    ? url.split('youtu.be/')[1].split('?')[0]
+    : url.includes('watch?v=') 
+    ? url.split('watch?v=')[1].split('&')[0]
+    : '';
+  
+  return `https://www.youtube.com/embed/${videoId}`;
+};
+
 export function EventRegistration() {
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
@@ -286,16 +297,18 @@ export function EventRegistration() {
                 {/* YouTube Video Section */}
                 {event.youtubeUrl && (
                   <div className="mt-6">
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      className="w-full"
-                      onClick={() => window.open(event.youtubeUrl!, '_blank')}
-                      data-testid="watch-video-button"
-                    >
-                      <ExternalLink className="h-5 w-5 mr-2" />
-                      Watch Event Video
-                    </Button>
+                    <h3 className="text-lg font-semibold mb-3">Event Video</h3>
+                    <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                      <iframe
+                        className="absolute top-0 left-0 w-full h-full rounded-lg"
+                        src={getYouTubeEmbedUrl(event.youtubeUrl)}
+                        title="Event Video"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        data-testid="youtube-embed"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
