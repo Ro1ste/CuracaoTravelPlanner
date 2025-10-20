@@ -11,6 +11,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import type { Event, EventRegistration } from "@shared/schema";
 import ciswLogo from "@/assets/cisw.jpeg";
+import ciswLogoDark from "@/assets/cisw-habshi.png";
+import { useTheme } from "next-themes";
 
 // Helper function to convert YouTube URL to embed URL
 const getYouTubeEmbedUrl = (url: string): string => {
@@ -27,6 +29,10 @@ export function EventRegistration() {
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
+  const { theme } = useTheme();
+  
+  // Theme-aware logo
+  const currentLogo = theme === 'dark' ? ciswLogoDark : ciswLogo;
   
   // Try to match both short code and event ID routes
   const [matchShort, paramsShort] = useRoute("/e/:shortCode");
@@ -139,7 +145,7 @@ export function EventRegistration() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <img src={ciswLogo} alt="CISW Logo" className="h-12 w-12 rounded-lg object-cover" />
+              <img src={currentLogo} alt="CISW Logo" className="h-12 w-12 rounded-lg object-cover" />
               <div>
                 <h1 className="text-2xl font-bold">Curacao International Sports Week</h1>
                 <p className="text-muted-foreground">Corporate Wellness Platform</p>
@@ -235,7 +241,7 @@ export function EventRegistration() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img 
-                src={ciswLogo} 
+                src={currentLogo} 
                 alt="CISW Logo" 
                 className="h-16 w-auto"
                 data-testid="logo-eisw"

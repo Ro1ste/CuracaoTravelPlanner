@@ -4,12 +4,18 @@ import { Badge } from "@/components/ui/badge";
 import { Award, Users, Calendar, BarChart3, ArrowRight, CheckCircle } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import ciswLogo from "@/assets/cisw.jpeg";
+import ciswLogoDark from "@/assets/cisw-habshi.png";
 import fitnessBackground from "@assets/stock_images/man_and_woman_doing__cb8dae4c.jpg";
 import { useLocation } from "wouter";
+import { useTheme } from "next-themes";
 
 export function Landing() {
   const [_, setLocation] = useLocation();
+  const { theme } = useTheme();
   const isDevMode = import.meta.env.MODE === 'development';
+  
+  // Theme-aware logo
+  const currentLogo = theme === 'dark' ? ciswLogoDark : ciswLogo;
   
   const handleSignup = () => {
     setLocation("/signup");
@@ -59,7 +65,7 @@ export function Landing() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img 
-                src={ciswLogo} 
+                src={currentLogo} 
                 alt="CISW Logo" 
                 className="h-24 w-auto"
                 data-testid="logo-eisw"
