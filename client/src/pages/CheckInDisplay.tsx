@@ -2,8 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import type { Event } from "@shared/schema";
-import { Card } from "@/components/ui/card";
-import { UserCheck } from "lucide-react";
+import ciswLogo from "@assets/cisw-logo.png";
 
 // Sanitized check-in type (matches API response)
 type CheckInDisplay = {
@@ -11,149 +10,237 @@ type CheckInDisplay = {
   firstName: string;
   lastName: string;
   companyName: string | null;
-  checkedInAt: string; // ISO date string from API
+  checkedInAt: string;
 };
 
 export function CheckInDisplay() {
   const { eventId } = useParams();
-  const [currentCheckIn, setCurrentCheckIn] = useState<CheckInDisplay | null>(null);
-  const [showWelcome, setShowWelcome] = useState(false);
-  const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastCheckInIdRef = useRef<string | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [fadeIn, setFadeIn] = useState(true);
+  const cycleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch event details
   const { data: event } = useQuery<Event>({
     queryKey: [`/api/events/${eventId}`],
-    refetchInterval: 60000, // Refresh event details every minute
+    refetchInterval: 60000,
   });
 
   // Poll for recent check-ins every 2 seconds
   const { data: recentCheckIns = [] } = useQuery<CheckInDisplay[]>({
     queryKey: [`/api/events/${eventId}/recent-checkins`],
-    refetchInterval: 2000, // Poll every 2 seconds
+    refetchInterval: 2000,
   });
 
-  // Show welcome message when a new check-in is detected
-  useEffect(() => {
-    if (recentCheckIns.length > 0) {
-      const latestCheckIn = recentCheckIns[0];
-      
-      // Check if this is a new check-in by comparing ID with tracked ref
-      if (latestCheckIn.id !== lastCheckInIdRef.current) {
-        // Clear any existing timer
-        if (hideTimerRef.current) {
-          clearTimeout(hideTimerRef.current);
-        }
-        
-        // Update state and ref
-        lastCheckInIdRef.current = latestCheckIn.id;
-        setCurrentCheckIn(latestCheckIn);
-        setShowWelcome(true);
-        
-        // Hide welcome message after 5 seconds
-        hideTimerRef.current = setTimeout(() => {
-          setShowWelcome(false);
-          hideTimerRef.current = null;
-        }, 5000);
-      }
-    } else if (recentCheckIns.length === 0 && lastCheckInIdRef.current !== null) {
-      // Clear display and timer if no check-ins exist
-      if (hideTimerRef.current) {
-        clearTimeout(hideTimerRef.current);
-        hideTimerRef.current = null;
-      }
-      lastCheckInIdRef.current = null;
-      setCurrentCheckIn(null);
-      setShowWelcome(false);
-    }
-  }, [recentCheckIns]);
+  // Determine if we should use dark mode based on branding color brightness
+  const getBrightness = (color: string): number => {
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    return (r * 299 + g * 587 + b * 114) / 1000;
+  };
 
-  // Cleanup timer on unmount
+  const brandingColor = event?.brandingColor || '#ff6600';
+  const isLightColor = getBrightness(brandingColor) > 128;
+  const isDarkMode = !isLightColor;
+
+  // Cycle through attendees every 150 seconds
   useEffect(() => {
+    if (recentCheckIns.length === 0) {
+      setCurrentIndex(0);
+      return;
+    }
+
+    // Clear existing timer
+    if (cycleTimerRef.current) {
+      clearTimeout(cycleTimerRef.current);
+    }
+
+    // Set up cycling timer
+    cycleTimerRef.current = setTimeout(() => {
+      setFadeIn(false);
+      
+      // After fade out, change to next attendee
+      setTimeout(() => {
+        setCurrentIndex((prev) => (prev + 1) % recentCheckIns.length);
+        setFadeIn(true);
+      }, 500);
+    }, 150000); // 150 seconds
+
     return () => {
-      if (hideTimerRef.current) {
-        clearTimeout(hideTimerRef.current);
+      if (cycleTimerRef.current) {
+        clearTimeout(cycleTimerRef.current);
       }
     };
-  }, []);
+  }, [recentCheckIns, currentIndex]);
+
+  // Reset to first attendee when list changes
+  useEffect(() => {
+    if (recentCheckIns.length > 0 && currentIndex >= recentCheckIns.length) {
+      setCurrentIndex(0);
+      setFadeIn(true);
+    }
+  }, [recentCheckIns, currentIndex]);
+
+  const currentCheckIn = recentCheckIns[currentIndex];
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-8"
+      className="min-h-screen flex flex-col items-center justify-center p-8 relative"
       style={{ 
-        background: `linear-gradient(135deg, ${event?.brandingColor || '#ff6600'} 0%, ${event?.brandingColor || '#ff6600'}dd 100%)` 
+        backgroundColor: isDarkMode ? '#000000' : '#FFFFFF',
+        color: isDarkMode ? '#FFFFFF' : '#000000'
       }}
+      data-testid="checkin-display-container"
     >
-      <div className="w-full max-w-4xl">
-        {showWelcome && currentCheckIn ? (
-          <Card className="p-12 text-center bg-white/95 backdrop-blur-sm shadow-2xl">
-            <div className="space-y-6">
-              <div className="flex justify-center">
-                <div className="w-24 h-24 rounded-full bg-green-500 flex items-center justify-center">
-                  <UserCheck className="w-12 h-12 text-white" />
-                </div>
+      {/* CISW Logo - Top Right Corner */}
+      <div className="absolute top-8 right-8">
+        <img 
+          src={ciswLogo} 
+          alt="CISW Logo"
+          className="w-48 h-auto"
+          style={{
+            filter: isDarkMode ? 'brightness(0) invert(1)' : 'none',
+          }}
+          data-testid="cisw-logo"
+        />
+      </div>
+
+      {/* Main Content */}
+      <div className="w-full max-w-5xl">
+        {recentCheckIns.length > 0 && currentCheckIn ? (
+          <div 
+            className={`text-center transition-opacity duration-500 ${fadeIn ? 'opacity-100' : 'opacity-0'}`}
+            data-testid="attendee-display"
+          >
+            {/* Welcome Icon */}
+            <div className="flex justify-center mb-12">
+              <div 
+                className="w-32 h-32 rounded-full flex items-center justify-center"
+                style={{
+                  backgroundColor: brandingColor,
+                }}
+              >
+                <svg 
+                  className="w-16 h-16 text-white" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" 
+                  />
+                </svg>
               </div>
-              
-              <div className="space-y-2">
-                <h1 className="text-6xl font-bold text-gray-900 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  {currentCheckIn.firstName} {currentCheckIn.lastName}
-                </h1>
-                
-                <div className="pt-4">
-                  <p className="text-3xl font-semibold text-gray-700 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
-                    Welcome to our
-                  </p>
-                  <p className="text-4xl font-bold animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200" style={{ color: event?.brandingColor || '#ff6600' }}>
-                    {event?.title || 'CISW 2025 Conference'}
-                  </p>
-                </div>
-              </div>
-              
-              {currentCheckIn.companyName && (
-                <p className="text-xl text-gray-600 animate-in fade-in duration-500 delay-300">
-                  {currentCheckIn.companyName}
-                </p>
-              )}
             </div>
-          </Card>
+
+            {/* Attendee Name */}
+            <h1 
+              className="text-8xl font-bold mb-8"
+              style={{ color: isDarkMode ? '#FFFFFF' : '#000000' }}
+              data-testid="attendee-name"
+            >
+              {currentCheckIn.firstName} {currentCheckIn.lastName}
+            </h1>
+
+            {/* Welcome Message */}
+            <div className="space-y-4 mb-8">
+              <p 
+                className="text-4xl font-semibold"
+                style={{ color: isDarkMode ? '#CCCCCC' : '#333333' }}
+              >
+                Welcome to
+              </p>
+              <p 
+                className="text-5xl font-bold"
+                style={{ color: brandingColor }}
+                data-testid="event-title"
+              >
+                {event?.title || 'CISW 2025 Conference'}
+              </p>
+            </div>
+
+            {/* Company Name */}
+            {currentCheckIn.companyName && (
+              <p 
+                className="text-3xl font-medium"
+                style={{ color: isDarkMode ? '#999999' : '#666666' }}
+                data-testid="company-name"
+              >
+                {currentCheckIn.companyName}
+              </p>
+            )}
+
+            {/* Progress Indicator */}
+            {recentCheckIns.length > 1 && (
+              <div className="mt-16 flex justify-center gap-2">
+                {recentCheckIns.map((_, idx) => (
+                  <div
+                    key={idx}
+                    className="w-3 h-3 rounded-full transition-all duration-300"
+                    style={{
+                      backgroundColor: idx === currentIndex 
+                        ? brandingColor 
+                        : isDarkMode ? '#333333' : '#CCCCCC'
+                    }}
+                    data-testid={`progress-dot-${idx}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         ) : (
-          <Card className="p-12 text-center bg-white/90 backdrop-blur-sm">
-            <div className="space-y-6">
-              <div className="flex justify-center">
-                <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center">
-                  <UserCheck className="w-10 h-10 text-gray-400" />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <h2 className="text-3xl font-bold text-gray-700">
-                  {event?.title || 'Event Check-In'}
-                </h2>
-                <p className="text-xl text-gray-500">
-                  Waiting for check-ins...
-                </p>
-                
-                {recentCheckIns.length > 0 && (
-                  <div className="pt-6">
-                    <p className="text-sm text-gray-400 mb-3">Recent Attendees:</p>
-                    <div className="space-y-1">
-                      {recentCheckIns.slice(0, 5).map((checkIn) => (
-                        <p key={checkIn.id} className="text-sm text-gray-600">
-                          {checkIn.firstName} {checkIn.lastName}
-                          {checkIn.companyName && ` - ${checkIn.companyName}`}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                )}
+          <div className="text-center" data-testid="waiting-display">
+            {/* Waiting Icon */}
+            <div className="flex justify-center mb-12">
+              <div 
+                className="w-32 h-32 rounded-full flex items-center justify-center"
+                style={{
+                  backgroundColor: isDarkMode ? '#222222' : '#EEEEEE',
+                }}
+              >
+                <svg 
+                  className="w-16 h-16"
+                  style={{ color: isDarkMode ? '#666666' : '#999999' }}
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" 
+                  />
+                </svg>
               </div>
             </div>
-          </Card>
+
+            <h2 
+              className="text-5xl font-bold mb-4"
+              style={{ color: isDarkMode ? '#FFFFFF' : '#000000' }}
+            >
+              {event?.title || 'Event Check-In'}
+            </h2>
+            <p 
+              className="text-3xl"
+              style={{ color: isDarkMode ? '#999999' : '#666666' }}
+            >
+              Waiting for attendees...
+            </p>
+          </div>
         )}
-        
-        <div className="text-center mt-6 text-white/80 text-sm">
-          <p>Event Check-In Display • Updates every 2 seconds</p>
-        </div>
+      </div>
+
+      {/* Footer Info */}
+      <div 
+        className="absolute bottom-8 left-0 right-0 text-center text-sm"
+        style={{ color: isDarkMode ? '#666666' : '#999999' }}
+      >
+        <p>Check-In Display • Cycling every 150 seconds</p>
       </div>
     </div>
   );
