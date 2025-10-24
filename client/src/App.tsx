@@ -27,6 +27,7 @@ import { TasksManagement } from "@/pages/TasksManagement";
 import { ProofReview } from "@/pages/ProofReview";
 import { PasswordResetRequest } from "@/pages/PasswordResetRequest";
 import { PasswordResetConfirm } from "@/pages/PasswordResetConfirm";
+import { CheckInDisplay } from "@/pages/CheckInDisplay";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -157,8 +158,9 @@ function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
   const [location] = useLocation();
 
-  // Event registration pages should always render standalone
+  // Event registration and check-in display pages should always render standalone
   const isEventRegistration = location.startsWith('/event-registration') || location.startsWith('/e/');
+  const isCheckInDisplay = location.startsWith('/checkin-display/');
 
   if (isLoading) {
     return (
@@ -175,6 +177,15 @@ function AppContent() {
         <Route path="/e/:shortCode" component={EventRegistration} />
         <Route path="/event-registration" component={EventRegistration} />
         <Route path="/event-registration/:eventId" component={EventRegistration} />
+      </Switch>
+    );
+  }
+
+  // Always render check-in display pages standalone (no sidebar/header)
+  if (isCheckInDisplay) {
+    return (
+      <Switch>
+        <Route path="/checkin-display/:eventId" component={CheckInDisplay} />
       </Switch>
     );
   }

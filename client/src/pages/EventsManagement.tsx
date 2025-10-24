@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Calendar, Users, Link2, Plus, Copy, Check, UserCheck } from "lucide-react";
+import { Calendar, Users, Link2, Plus, Copy, Check, UserCheck, Trash2 } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -30,14 +30,11 @@ export function EventsManagement() {
     queryKey: ['/api/events'],
   });
 
-  // Extend insertEventSchema with additional validation
-  const eventFormSchema = insertEventSchema.extend({
+  // Base schema without future date validation (used for editing)
+  const baseEventFormSchema = insertEventSchema.extend({
     title: z.string().min(1, "Event title is required").min(5, "Title must be at least 5 characters"),
     description: z.string().min(1, "Description is required").min(10, "Description must be at least 10 characters"),
-    eventDate: z.string().min(1, "Event date is required").refine(
-      (date) => new Date(date) > new Date(),
-      "Event date must be in the future"
-    ),
+    eventDate: z.string().min(1, "Event date is required"),
     youtubeUrl: z.string().optional().refine(
       (url) => !url || url.includes('youtube.com') || url.includes('youtu.be'),
       "Please enter a valid YouTube URL"
@@ -47,8 +44,19 @@ export function EventsManagement() {
     emailBodyText: z.string().optional()
   });
 
-  const form = useForm({
-    resolver: zodResolver(eventFormSchema),
+  // Schema for creating new events (requires future date)
+  const createEventFormSchema = baseEventFormSchema.extend({
+    eventDate: z.string().min(1, "Event date is required").refine(
+      (date) => new Date(date) > new Date(),
+      "Event date must be in the future"
+    ),
+  });
+
+  const eventFormSchema = editingEvent ? baseEventFormSchema : createEventFormSchema;
+
+  // Create separate forms for create and edit to handle different validation
+  const createForm = useForm({
+    resolver: zodResolver(createEventFormSchema),
     defaultValues: {
       title: "",
       description: "",
@@ -59,6 +67,47 @@ export function EventsManagement() {
       emailBodyText: ""
     }
   });
+
+  const editForm = useForm({
+    resolver: zodResolver(baseEventFormSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      eventDate: "",
+      youtubeUrl: "",
+      brandingColor: "#ff6600",
+      emailSubject: "",
+      emailBodyText: ""
+    }
+  });
+
+  // Reset editForm when editingEvent changes
+  useEffect(() => {
+    if (editingEvent) {
+      // Format date for datetime-local input without timezone conversion
+      let formattedDate = "";
+      if (editingEvent.eventDate) {
+        const date = new Date(editingEvent.eventDate);
+        // Get local date/time components to avoid timezone conversion
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
+      }
+      
+      editForm.reset({
+        title: editingEvent.title,
+        description: editingEvent.description || "",
+        eventDate: formattedDate,
+        youtubeUrl: editingEvent.youtubeUrl || "",
+        brandingColor: editingEvent.brandingColor || "#211100",
+        emailSubject: editingEvent.emailSubject || "",
+        emailBodyText: editingEvent.emailBodyText || ""
+      });
+    }
+  }, [editingEvent, editForm]);
 
   const createEventMutation = useMutation({
     mutationFn: async (data: {
@@ -80,7 +129,7 @@ export function EventsManagement() {
       });
       queryClient.invalidateQueries({ queryKey: ['/api/events'] });
       setCreateDialogOpen(false);
-      form.reset();
+      createForm.reset();
       
       // Show shareable link toast  
       const shareableLink = `${window.location.origin}/e/${newEvent.shortCode}`;
@@ -122,7 +171,7 @@ export function EventsManagement() {
       queryClient.invalidateQueries({ queryKey: ['/api/events'] });
       setEditDialogOpen(false);
       setEditingEvent(null);
-      form.reset();
+      editForm.reset();
     },
     onError: (error: any) => {
       toast({
@@ -133,11 +182,39 @@ export function EventsManagement() {
     },
   });
 
-  const onSubmit = (data: any) => {
+  const deleteEventMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      await apiRequest("DELETE", `/api/events/${eventId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Event Deleted!",
+        description: "The event has been deleted successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Delete Event",
+        description: error.message || "Something went wrong",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteEvent = (eventId: string) => {
+    if (confirm("Are you sure you want to delete this event? This action cannot be undone.")) {
+      deleteEventMutation.mutate(eventId);
+    }
+  };
+
+  const onCreateSubmit = (data: any) => {
+    createEventMutation.mutate(data);
+  };
+
+  const onEditSubmit = (data: any) => {
     if (editingEvent) {
       updateEventMutation.mutate({ ...data, id: editingEvent.id });
-    } else {
-      createEventMutation.mutate(data);
     }
   };
 
@@ -166,15 +243,6 @@ export function EventsManagement() {
 
   const handleEditEvent = (event: Event) => {
     setEditingEvent(event);
-    form.reset({
-      title: event.title,
-      description: event.description || "",
-      eventDate: event.eventDate ? new Date(event.eventDate).toISOString().slice(0, 16) : "",
-      youtubeUrl: event.youtubeUrl || "",
-      brandingColor: event.brandingColor || "#211100",
-      emailSubject: event.emailSubject || "",
-      emailBodyText: event.emailBodyText || ""
-    });
     setEditDialogOpen(true);
   };
 
@@ -197,10 +265,10 @@ export function EventsManagement() {
             <DialogHeader>
               <DialogTitle>Create New Event</DialogTitle>
             </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <Form {...createForm}>
+              <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="space-y-4">
                 <FormField
-                  control={form.control}
+                  control={createForm.control}
                   name="title"
                   render={({ field }) => (
                     <FormItem>
@@ -218,7 +286,7 @@ export function EventsManagement() {
                 />
                 
                 <FormField
-                  control={form.control}
+                  control={createForm.control}
                   name="description"
                   render={({ field }) => (
                     <FormItem>
@@ -237,7 +305,7 @@ export function EventsManagement() {
                 />
 
                 <FormField
-                  control={form.control}
+                  control={createForm.control}
                   name="youtubeUrl"
                   render={({ field }) => (
                     <FormItem>
@@ -255,7 +323,7 @@ export function EventsManagement() {
                 />
 
                 <FormField
-                  control={form.control}
+                  control={createForm.control}
                   name="eventDate"
                   render={({ field }) => (
                     <FormItem>
@@ -273,7 +341,7 @@ export function EventsManagement() {
                 />
 
                 <FormField
-                  control={form.control}
+                  control={createForm.control}
                   name="brandingColor"
                   render={({ field }) => (
                     <FormItem>
@@ -305,7 +373,7 @@ export function EventsManagement() {
                   </p>
                   
                   <FormField
-                    control={form.control}
+                    control={createForm.control}
                     name="emailSubject"
                     render={({ field }) => (
                       <FormItem>
@@ -323,7 +391,7 @@ export function EventsManagement() {
                   />
 
                   <FormField
-                    control={form.control}
+                    control={createForm.control}
                     name="emailBodyText"
                     render={({ field }) => (
                       <FormItem>
@@ -370,10 +438,10 @@ export function EventsManagement() {
             <DialogHeader>
               <DialogTitle>Edit Event</DialogTitle>
             </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <Form {...editForm}>
+              <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
                 <FormField
-                  control={form.control}
+                  control={editForm.control}
                   name="title"
                   render={({ field }) => (
                     <FormItem>
@@ -386,7 +454,7 @@ export function EventsManagement() {
                   )}
                 />
                 <FormField
-                  control={form.control}
+                  control={editForm.control}
                   name="description"
                   render={({ field }) => (
                     <FormItem>
@@ -399,7 +467,7 @@ export function EventsManagement() {
                   )}
                 />
                 <FormField
-                  control={form.control}
+                  control={editForm.control}
                   name="eventDate"
                   render={({ field }) => (
                     <FormItem>
@@ -412,7 +480,7 @@ export function EventsManagement() {
                   )}
                 />
                 <FormField
-                  control={form.control}
+                  control={editForm.control}
                   name="youtubeUrl"
                   render={({ field }) => (
                     <FormItem>
@@ -425,7 +493,7 @@ export function EventsManagement() {
                   )}
                 />
                 <FormField
-                  control={form.control}
+                  control={editForm.control}
                   name="brandingColor"
                   render={({ field }) => (
                     <FormItem>
@@ -438,7 +506,7 @@ export function EventsManagement() {
                   )}
                 />
                 <FormField
-                  control={form.control}
+                  control={editForm.control}
                   name="emailSubject"
                   render={({ field }) => (
                     <FormItem>
@@ -451,7 +519,7 @@ export function EventsManagement() {
                   )}
                 />
                 <FormField
-                  control={form.control}
+                  control={editForm.control}
                   name="emailBodyText"
                   render={({ field }) => (
                     <FormItem>
@@ -473,7 +541,7 @@ export function EventsManagement() {
                     onClick={() => {
                       setEditDialogOpen(false);
                       setEditingEvent(null);
-                      form.reset();
+                      editForm.reset();
                     }}
                   >
                     Cancel
@@ -550,6 +618,14 @@ export function EventsManagement() {
                       >
                         Edit
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDeleteEvent(event.id)}
+                        data-testid={`button-delete-event-${event.id}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                       <div
                         className="w-12 h-12 rounded-lg"
                         style={{ backgroundColor: event.brandingColor || "#ff6600" }}
@@ -625,10 +701,16 @@ export function EventsManagement() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex gap-2 pt-4 border-t">
+                    <div className="flex gap-2 pt-4 border-t flex-wrap">
+                      <Link href={`/checkin-display/${event.id}`} target="_blank">
+                        <Button variant="outline" size="sm" data-testid={`button-checkin-display-${event.id}`}>
+                          <UserCheck className="h-4 w-4 mr-2" />
+                          Check-in Display
+                        </Button>
+                      </Link>
                       <Link href={`/events/${event.id}/attendees`}>
                         <Button variant="outline" size="sm" data-testid={`button-manage-attendees-${event.id}`}>
-                          <UserCheck className="h-4 w-4 mr-2" />
+                          <Users className="h-4 w-4 mr-2" />
                           Manage Attendees
                         </Button>
                       </Link>

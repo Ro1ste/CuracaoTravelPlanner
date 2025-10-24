@@ -64,6 +64,7 @@ export interface IStorage {
   getActiveEvents(): Promise<Event[]>;
   createEvent(event: InsertEvent & { shortCode?: string }): Promise<Event>;
   updateEvent(id: string, updates: Partial<InsertEvent>): Promise<Event | undefined>;
+  deleteEvent(id: string): Promise<void>;
   
   // Event registration operations
   getEventRegistrations(eventId: string): Promise<EventRegistration[]>;
@@ -431,6 +432,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(events.id, id))
       .returning();
     return event;
+  }
+
+  async deleteEvent(id: string): Promise<void> {
+    const db = await this.getDb();
+    // First delete all associated event registrations
+    await db.delete(eventRegistrations).where(eq(eventRegistrations.eventId, id));
+    // Then delete the event itself
+    await db.delete(events).where(eq(events.id, id));
   }
 
   // Event registration operations
@@ -889,6 +898,16 @@ export class MemStorage implements IStorage {
     };
     this.events.set(id, updated);
     return updated;
+  }
+
+  async deleteEvent(id: string): Promise<void> {
+    // First delete all associated event registrations
+    const registrations = Array.from(this.eventRegistrations.values()).filter(
+      r => r.eventId === id
+    );
+    registrations.forEach(r => this.eventRegistrations.delete(r.id));
+    // Then delete the event itself
+    this.events.delete(id);
   }
 
   // Event registration operations

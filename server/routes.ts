@@ -893,6 +893,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete event (admin only)
+  app.delete('/api/events/:id', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const eventId = req.params.id;
+      await storage.deleteEvent(eventId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      res.status(500).json({ message: "Failed to delete event" });
+    }
+  });
+
+  // Get recent check-ins for event (public endpoint for display screens)
+  // Sanitized to only include display-relevant fields (no PII like email/phone)
+  app.get('/api/events/:eventId/recent-checkins', async (req, res) => {
+    try {
+      const { eventId } = req.params;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const registrations = await storage.getEventRegistrations(eventId);
+      
+      // Filter to only checked-in registrations and sort by most recent
+      const recentCheckIns = registrations
+        .filter(r => r.checkedIn && r.checkedInAt)
+        .sort((a, b) => {
+          const aTime = a.checkedInAt?.getTime() || 0;
+          const bTime = b.checkedInAt?.getTime() || 0;
+          return bTime - aTime;
+        })
+        .slice(0, limit)
+        // Sanitize: only return fields needed for display
+        .map(r => ({
+          id: r.id,
+          firstName: r.firstName,
+          lastName: r.lastName,
+          companyName: r.companyName,
+          checkedInAt: r.checkedInAt
+        }));
+      
+      res.json(recentCheckIns);
+    } catch (error) {
+      console.error("Error fetching recent check-ins:", error);
+      res.status(500).json({ message: "Failed to fetch recent check-ins" });
+    }
+  });
+
   // ========== PUBLIC CHECK-IN ROUTE ==========
   app.get('/checkin/:token', async (req, res) => {
     try {
