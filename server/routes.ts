@@ -307,19 +307,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(allTasks);
       }
       
-      // For regular users, check if their company is registered for any events
+      // For regular users (companies), check if they have a company profile
       const company = await storage.getCompanyByUserId(userId);
       if (!company) {
         return res.status(400).json({ message: "Company profile required to view tasks" });
       }
       
-      // Check if company is registered for any events
-      const hasEventRegistrations = await storage.hasEventRegistrations(company.email);
-      if (!hasEventRegistrations) {
-        return res.json([]); // Return empty array if no event registrations
-      }
-      
-      // Company is registered for events, return all tasks
+      // All companies can see all tasks
       const allTasks = await storage.getAllTasks();
       res.json(allTasks);
     } catch (error) {
