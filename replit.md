@@ -103,6 +103,12 @@ The platform is built with a Fullstack JavaScript stack, utilizing React with Ty
 - ✅ All automated emails (QR codes, event notifications, admin welcome emails) now send from bepartofthemovement.com
 - ⚠️ Requires domain verification in Resend dashboard with SPF/DKIM/DMARC records
 
+**Event Email Improvements (October 24, 2025):**
+- ✅ Added proper line spacing in email body - each line wrapped in `<p>` with 8px vertical margin
+- ✅ Removed QR code usage instructions from emails (no more "How to use your QR Code" section)
+- ✅ Simplified QR code email display - shows only the title "Your Event QR Code" and the QR image
+- ✅ Improved HTML formatting - converts plain text to properly spaced HTML paragraphs
+
 **Admin Login Configuration (October 1, 2025):**
 - ✅ Created production admin account: admin@curacaointernationalsportsweek.com (password: Admin2024!)
 - ✅ Admin account stored in production database with bcrypt hashing (10 rounds)

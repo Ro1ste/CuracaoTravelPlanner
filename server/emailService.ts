@@ -27,7 +27,9 @@ export class EmailService {
       },
     });
 
-    let htmlContent = options.html || `<p>${options.text}</p>`;
+    let htmlContent = options.html || options.text.split('\n').map(line => 
+      line.trim() === '' ? '<br/>' : `<p style="margin: 8px 0;">${line}</p>`
+    ).join('');
     const attachments: { filename: string; content: Buffer; cid: string }[] = [];
 
     if (options.qrCodeDataUrl) {
@@ -38,21 +40,9 @@ export class EmailService {
         const filename = `qr-code.${mime === 'jpeg' ? 'jpg' : 'png'}`;
         attachments.push({ filename, content: Buffer.from(base64, 'base64'), cid: 'qr-code' });
         htmlContent += `
-          <div style="margin-top: 20px; text-align: center;">
-            <h3>Your Event QR Code</h3>
+          <div style="margin-top: 30px; text-align: center;">
+            <h3 style="margin-bottom: 20px;">Your Event QR Code</h3>
             <img src="cid:qr-code" alt="QR Code" style="max-width: 300px; display: block; margin: 0 auto;" />
-            <div style="margin-top: 15px; padding: 15px; background-color: #e3f2fd; border-radius: 8px; text-align: left; max-width: 400px; margin-left: auto; margin-right: auto;">
-              <h4 style="margin: 0 0 10px 0; color: #1976d2;">How to use your QR Code:</h4>
-              <ol style="margin: 0; padding-left: 20px; font-size: 14px; color: #333;">
-                <li>Scan this QR code with your phone's camera or any QR code scanner</li>
-                <li>It will open a check-in page in your browser</li>
-                <li>Your check-in will be automatically processed</li>
-                <li>You'll see a confirmation message</li>
-              </ol>
-            </div>
-            <p style="margin-top: 15px; font-size: 12px; color: #666;">
-              You can also show this QR code to event staff for manual check-in.
-            </p>
           </div>
         `;
       }
