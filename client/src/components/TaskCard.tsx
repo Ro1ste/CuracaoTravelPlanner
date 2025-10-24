@@ -32,6 +32,23 @@ export function TaskCard({
     }
   };
 
+  // Extract YouTube video ID from URL
+  const getYouTubeVideoId = (url: string): string | null => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return match && match[2].length === 11 ? match[2] : null;
+  };
+
+  const getYouTubeThumbnailUrl = (): string | null => {
+    if (!youtubeUrl) return null;
+    const videoId = getYouTubeVideoId(youtubeUrl);
+    if (!videoId) return null;
+    // Use hqdefault for better compatibility (maxresdefault might not exist for all videos)
+    return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+  };
+
+  const thumbnailUrl = getYouTubeThumbnailUrl();
+
   return (
     <Card className="hover-elevate transition-all duration-300 border-2">
       <CardHeader>
@@ -68,19 +85,33 @@ export function TaskCard({
           {description}
         </p>
         
-        {youtubeUrl && (
+        {youtubeUrl && thumbnailUrl && (
           <div 
-            className="relative bg-gradient-to-br from-blue-500/10 to-purple-500/10 dark:from-blue-500/20 dark:to-purple-500/20 rounded-lg overflow-hidden cursor-pointer group hover-elevate"
+            className="relative rounded-lg overflow-hidden cursor-pointer group hover-elevate"
             onClick={openYouTubeVideo}
             data-testid="video-thumbnail"
           >
-            <div className="aspect-video flex items-center justify-center">
-              <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
-              <div className="relative z-10 flex flex-col items-center gap-2">
-                <div className="bg-red-600 hover:bg-red-700 transition-colors rounded-full p-4 shadow-lg">
+            <div className="aspect-video relative">
+              <img 
+                src={thumbnailUrl}
+                alt={`${title} tutorial thumbnail`}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Fallback to gradient background if thumbnail fails to load
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+              {/* Dark overlay on hover */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors" />
+              {/* Play button overlay */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="bg-red-600 group-hover:bg-red-700 transition-colors rounded-full p-4 shadow-lg">
                   <Play className="h-8 w-8 text-white fill-white" />
                 </div>
-                <span className="text-sm font-medium bg-black/60 backdrop-blur-sm text-white px-3 py-1 rounded-full">
+              </div>
+              {/* Watch Tutorial badge */}
+              <div className="absolute bottom-2 right-2">
+                <span className="text-sm font-medium bg-black/70 backdrop-blur-sm text-white px-3 py-1 rounded-full">
                   Watch Tutorial
                 </span>
               </div>

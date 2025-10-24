@@ -14,7 +14,7 @@ import {
   passwordResetRequestSchema,
   passwordResetConfirmSchema
 } from "@shared/schema";
-import { S3ObjectStorageService } from "./s3ObjectStorage";
+import { ObjectStorageService } from "./objectStorage";
 import { QRCodeService } from "./qrService";
 import { EmailService } from "./emailService";
 import bcrypt from "bcrypt";
@@ -465,15 +465,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Normalize all object storage paths with ACL policies
-      const objectStorageService = new S3ObjectStorageService();
-      const normalizedUrls = await Promise.all(
-        proofData.contentUrls.map(url => 
-          objectStorageService.trySetObjectEntityAclPolicy(url, {
-            owner: userId,
-            visibility: "private",
-          })
-        )
+      // Normalize all object storage paths
+      const objectStorageService = new ObjectStorageService();
+      const normalizedUrls = proofData.contentUrls.map(url => 
+        objectStorageService.normalizeObjectEntityPath(url)
       );
 
       // Create proof with normalized URLs
@@ -744,7 +739,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/upload-url", isAuthenticated, async (req, res) => {
     try {
       console.log('Getting upload URL for user:', (req as any).user?.email);
-      const objectStorageService = new S3ObjectStorageService();
+      const objectStorageService = new ObjectStorageService();
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
       console.log('Generated upload URL:', uploadURL.substring(0, 100) + '...');
       res.json({ uploadUrl: uploadURL });
@@ -758,12 +753,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/upload/:objectKey", isAuthenticated, async (req, res) => {
     try {
       const { objectKey } = req.params;
-      console.log('Deleting S3 object:', objectKey);
+      console.log('Deleting object:', objectKey);
       
-      const objectStorageService = new S3ObjectStorageService();
+      const objectStorageService = new ObjectStorageService();
       await objectStorageService.deleteObject(objectKey);
       
-      console.log('Successfully deleted S3 object:', objectKey);
+      console.log('Successfully deleted object:', objectKey);
       res.json({ success: true, message: "File deleted successfully" });
     } catch (error) {
       console.error("Error deleting file:", error);
@@ -775,7 +770,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get upload URL for proof content (legacy)
   app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
     try {
-      const objectStorageService = new S3ObjectStorageService();
+      const objectStorageService = new ObjectStorageService();
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
       res.json({ uploadURL });
     } catch (error) {
@@ -784,26 +779,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Serve private objects with ACL checks
+  // Serve private objects  
   app.get("/objects/:objectPath(*)", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.id;
-      const objectStorageService = new S3ObjectStorageService();
-      const objectPath = req.params.objectPath;
+      const objectStorageService = new ObjectStorageService();
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
       
-      const canAccess = await objectStorageService.canAccessObjectEntity({
-        userId: userId,
-        objectFile: objectPath,
-        requestedPermission: "read",
-      });
-      
-      if (!canAccess) {
-        return res.sendStatus(403);
-      }
-      
-      await objectStorageService.downloadObject(objectPath, res);
+      // For now, allow all authenticated users to access proof images
+      // In the future, you could add ACL checks here
+      await objectStorageService.downloadObject(objectFile, res);
     } catch (error) {
       console.error("Error accessing object:", error);
+      if ((error as any).name === 'ObjectNotFoundError') {
+        return res.sendStatus(404);
+      }
       return res.sendStatus(500);
     }
   });

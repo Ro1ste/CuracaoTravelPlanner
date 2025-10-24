@@ -42,36 +42,10 @@ export class S3UploadService {
         throw new Error(`Upload failed: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
-      // Extract the S3 object key from the upload URL
-      const url = new URL(uploadUrl);
-      const objectKey = url.pathname.substring(1); // Remove leading slash
-      
-      // Return the public URL (CloudFront or S3 direct)
-      const cloudFrontDomain = import.meta.env.VITE_CLOUDFRONT_DOMAIN;
-      if (cloudFrontDomain) {
-        const publicUrl = `https://${cloudFrontDomain}/${objectKey}`;
-        console.log('Generated CloudFront URL:', publicUrl);
-        
-        // Test if the URL is accessible
-        fetch(publicUrl, { method: 'HEAD' })
-          .then(response => {
-            console.log('CloudFront URL accessibility test:', response.status, response.statusText);
-            if (!response.ok) {
-              console.warn('CloudFront URL may not be accessible:', publicUrl);
-            }
-          })
-          .catch(error => {
-            console.error('CloudFront URL accessibility test failed:', error);
-          });
-        
-        return publicUrl;
-      } else {
-        const bucketName = import.meta.env.VITE_S3_BUCKET_NAME || 'curacao-sports-week';
-        const region = import.meta.env.VITE_S3_REGION || 'us-east-1';
-        const publicUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${objectKey}`;
-        console.log('Generated S3 URL:', publicUrl);
-        return publicUrl;
-      }
+      // Return the upload URL as-is since it's already the Google Cloud Storage URL
+      // The upload URL contains the full path including bucket and object name
+      console.log('Upload successful, using signed URL as public URL');
+      return uploadUrl;
     } catch (error) {
       console.error('S3 upload error:', error);
       throw error;
@@ -83,13 +57,16 @@ export class S3UploadService {
     return Promise.all(uploadPromises);
   }
 
-  static async deleteFile(cloudFrontUrl: string): Promise<void> {
+  static async deleteFile(storageUrl: string): Promise<void> {
     try {
-      console.log('Deleting file from S3:', cloudFrontUrl);
+      console.log('Deleting file from storage:', storageUrl);
       
-      // Extract object key from CloudFront URL
-      const url = new URL(cloudFrontUrl);
-      const objectKey = url.pathname.substring(1); // Remove leading slash
+      // Extract object key from Google Cloud Storage URL
+      const url = new URL(storageUrl);
+      // For signed URLs, extract from path before query params
+      const pathParts = url.pathname.split('/');
+      // Get the last part which should be the upload UUID
+      const objectKey = pathParts[pathParts.length - 1];
       
       console.log('Extracted object key:', objectKey);
       
@@ -102,9 +79,9 @@ export class S3UploadService {
         throw new Error(`Delete failed: ${response.status} ${response.statusText}`);
       }
 
-      console.log('Successfully deleted file from S3:', objectKey);
+      console.log('Successfully deleted file from storage:', objectKey);
     } catch (error) {
-      console.error('S3 delete error:', error);
+      console.error('Storage delete error:', error);
       throw error;
     }
   }
