@@ -18,6 +18,7 @@ export function CheckInDisplay() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [fadeIn, setFadeIn] = useState(true);
   const cycleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const fadeTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch event details
   const { data: event } = useQuery<Event>({
@@ -44,43 +45,67 @@ export function CheckInDisplay() {
   const isLightColor = getBrightness(brandingColor) > 128;
   const isDarkMode = !isLightColor;
 
-  // Cycle through attendees every 150 seconds
+  // Continuous cycling through attendees every 150 seconds
   useEffect(() => {
+    // Clear existing timers first and reset fade state
+    if (cycleTimerRef.current) {
+      clearInterval(cycleTimerRef.current);
+      cycleTimerRef.current = null;
+    }
+    if (fadeTimerRef.current) {
+      clearTimeout(fadeTimerRef.current);
+      fadeTimerRef.current = null;
+    }
+    
+    // Always ensure display is visible when effect re-runs
+    setFadeIn(true);
+
     if (recentCheckIns.length === 0) {
       setCurrentIndex(0);
       return;
     }
 
-    // Clear existing timer
-    if (cycleTimerRef.current) {
-      clearTimeout(cycleTimerRef.current);
+    if (recentCheckIns.length === 1) {
+      setCurrentIndex(0);
+      return;
     }
 
-    // Set up cycling timer
-    cycleTimerRef.current = setTimeout(() => {
+    // Set up interval to cycle every 150 seconds
+    const cycleToNext = () => {
       setFadeIn(false);
       
       // After fade out, change to next attendee
-      setTimeout(() => {
+      fadeTimerRef.current = setTimeout(() => {
         setCurrentIndex((prev) => (prev + 1) % recentCheckIns.length);
         setFadeIn(true);
       }, 500);
-    }, 150000); // 150 seconds
+    };
+
+    // Reset to first if current index is out of bounds
+    if (currentIndex >= recentCheckIns.length) {
+      setCurrentIndex(0);
+    }
+
+    // Set up interval for continuous cycling
+    cycleTimerRef.current = setInterval(cycleToNext, 150000) as any;
 
     return () => {
       if (cycleTimerRef.current) {
-        clearTimeout(cycleTimerRef.current);
+        clearInterval(cycleTimerRef.current);
+      }
+      if (fadeTimerRef.current) {
+        clearTimeout(fadeTimerRef.current);
       }
     };
-  }, [recentCheckIns, currentIndex]);
+  }, [recentCheckIns.length]);
 
-  // Reset to first attendee when list changes
+  // Reset to first attendee when list changes substantially
   useEffect(() => {
     if (recentCheckIns.length > 0 && currentIndex >= recentCheckIns.length) {
       setCurrentIndex(0);
       setFadeIn(true);
     }
-  }, [recentCheckIns, currentIndex]);
+  }, [recentCheckIns.length, currentIndex]);
 
   const currentCheckIn = recentCheckIns[currentIndex];
 
