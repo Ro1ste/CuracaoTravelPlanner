@@ -881,6 +881,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const eventId = req.params.id;
       const updates = req.body;
       
+      // Convert eventDate string to Date object if present
+      if (updates.eventDate && typeof updates.eventDate === 'string') {
+        const dateObj = new Date(updates.eventDate);
+        if (isNaN(dateObj.getTime())) {
+          return res.status(400).json({ message: "Invalid event date format" });
+        }
+        updates.eventDate = dateObj;
+      }
+      
       const updatedEvent = await storage.updateEvent(eventId, updates);
       if (!updatedEvent) {
         return res.status(404).json({ message: "Event not found" });

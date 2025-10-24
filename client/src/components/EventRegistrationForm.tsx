@@ -76,16 +76,18 @@ export function EventRegistrationForm({
   return (
     <Card className="max-w-md mx-auto">
       <CardHeader>
-        <CardTitle data-testid="form-title">Register for Event</CardTitle>
-        <p className="text-sm text-muted-foreground">
+        <CardTitle data-testid="form-title" className="text-2xl">Register for Event</CardTitle>
+        <p className="text-sm text-muted-foreground mt-2">
           Fill out the form below to register for {eventTitle}
         </p>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="firstName">First Name *</Label>
+            <div className="space-y-2">
+              <Label htmlFor="firstName" className="text-sm font-medium">
+                First Name *
+              </Label>
               <Input
                 id="firstName"
                 value={formData.firstName}
@@ -93,10 +95,13 @@ export function EventRegistrationForm({
                 placeholder="John"
                 required
                 data-testid="input-first-name"
+                className="h-11"
               />
             </div>
-            <div>
-              <Label htmlFor="lastName">Last Name *</Label>
+            <div className="space-y-2">
+              <Label htmlFor="lastName" className="text-sm font-medium">
+                Last Name *
+              </Label>
               <Input
                 id="lastName"
                 value={formData.lastName}
@@ -104,12 +109,15 @@ export function EventRegistrationForm({
                 placeholder="Doe"
                 required
                 data-testid="input-last-name"
+                className="h-11"
               />
             </div>
           </div>
           
-          <div>
-            <Label htmlFor="email">Email Address *</Label>
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-sm font-medium">
+              Email Address *
+            </Label>
             <Input
               id="email"
               type="email"
@@ -118,11 +126,14 @@ export function EventRegistrationForm({
               placeholder="john.doe@company.com"
               required
               data-testid="input-email"
+              className="h-11"
             />
           </div>
           
-          <div>
-            <Label htmlFor="phone">Phone Number *</Label>
+          <div className="space-y-2">
+            <Label htmlFor="phone" className="text-sm font-medium">
+              Phone Number *
+            </Label>
             <Input
               id="phone"
               type="tel"
@@ -131,23 +142,27 @@ export function EventRegistrationForm({
               placeholder="+1 (555) 123-4567"
               required
               data-testid="input-phone"
+              className="h-11"
             />
           </div>
           
-          <div>
-            <Label htmlFor="companyName">Company Name (Optional)</Label>
+          <div className="space-y-2">
+            <Label htmlFor="companyName" className="text-sm font-medium">
+              Company Name (Optional)
+            </Label>
             <Input
               id="companyName"
               value={formData.companyName}
               onChange={handleInputChange("companyName")}
               placeholder="Your Company"
               data-testid="input-company-name"
+              className="h-11"
             />
           </div>
           
           <Button 
             type="submit" 
-            className="w-full"
+            className="w-full h-11 text-base font-medium mt-6"
             disabled={isSubmitting}
             data-testid="button-register-event"
           >

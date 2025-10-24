@@ -109,6 +109,12 @@ The platform is built with a Fullstack JavaScript stack, utilizing React with Ty
 - ✅ Simplified QR code email display - shows only the title "Your Event QR Code" and the QR image
 - ✅ Improved HTML formatting - converts plain text to properly spaced HTML paragraphs
 
+**Bug Fixes (October 24, 2025):**
+- ✅ Fixed 500 error when updating events - added eventDate string to Date conversion with validation
+- ✅ Improved registration form spacing for better readability - increased vertical spacing from space-y-4 to space-y-6
+- ✅ Enhanced form field labels with medium font weight and added space-y-2 for label/input separation
+- ✅ Increased input heights to h-11 (44px) for better touch targets and accessibility
+
 **Admin Login Configuration (October 1, 2025):**
 - ✅ Created production admin account: admin@curacaointernationalsportsweek.com (password: Admin2024!)
 - ✅ Admin account stored in production database with bcrypt hashing (10 rounds)
