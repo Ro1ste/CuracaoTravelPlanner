@@ -24,6 +24,12 @@ export class S3ObjectStorageService {
     const accessKeyId = process.env.S3_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID || '';
     const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY || '';
     
+    console.log('🔧 S3 Configuration:');
+    console.log(`  Bucket: ${this.bucketName}`);
+    console.log(`  Region: ${this.region}`);
+    console.log(`  Access Key ID: ${accessKeyId ? `${accessKeyId.substring(0, 8)}...` : 'NOT SET'}`);
+    console.log(`  Secret Key: ${secretAccessKey ? 'SET' : 'NOT SET'}`);
+    
     this.s3Client = new S3Client({
       region: this.region,
       credentials: {
@@ -33,8 +39,12 @@ export class S3ObjectStorageService {
     });
 
     // Validate configuration
-    if (!process.env.S3_ACCESS_KEY_ID || !process.env.S3_SECRET_ACCESS_KEY) {
-      console.warn('⚠️  S3 credentials not configured. Set S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY environment variables.');
+    if (!accessKeyId || !secretAccessKey) {
+      console.error('❌ S3 credentials not configured properly!');
+      console.error(`  S3_ACCESS_KEY_ID: ${accessKeyId ? 'SET' : 'NOT SET'}`);
+      console.error(`  S3_SECRET_ACCESS_KEY: ${secretAccessKey ? 'SET' : 'NOT SET'}`);
+    } else {
+      console.log('✅ S3 credentials configured successfully');
     }
     
     if (this.cloudFrontDomain) {
@@ -47,18 +57,27 @@ export class S3ObjectStorageService {
     const objectId = randomUUID();
     const objectKey = `uploads/${objectId}`;
 
+    console.log(`🔗 Generating upload URL for: ${objectKey}`);
+
     const command = new PutObjectCommand({
       Bucket: this.bucketName,
       Key: objectKey,
       ContentType: 'application/octet-stream',
-      // ACL removed - bucket does not support ACLs
+      // Make the object publicly readable
+      ACL: 'public-read'
     });
 
     try {
       const signedUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 900 }); // 15 minutes
+      console.log(`✅ Generated signed URL: ${signedUrl.substring(0, 100)}...`);
       return signedUrl;
     } catch (error) {
       console.error('❌ Error generating upload URL:', error);
+      console.error('S3 Client config:', {
+        region: this.region,
+        bucketName: this.bucketName,
+        hasCredentials: !!(process.env.S3_ACCESS_KEY_ID && process.env.S3_SECRET_ACCESS_KEY)
+      });
       throw new Error('Failed to generate upload URL');
     }
   }

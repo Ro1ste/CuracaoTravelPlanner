@@ -1302,6 +1302,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
+  // S3 configuration test endpoint
+  app.get("/api/s3-config", (req, res) => {
+    const config = {
+      bucketName: process.env.S3_BUCKET_NAME,
+      region: process.env.S3_REGION,
+      hasAccessKey: !!process.env.S3_ACCESS_KEY_ID,
+      hasSecretKey: !!process.env.S3_SECRET_ACCESS_KEY,
+      cloudFrontDomain: process.env.CLOUDFRONT_DOMAIN,
+      accessKeyPreview: process.env.S3_ACCESS_KEY_ID ? `${process.env.S3_ACCESS_KEY_ID.substring(0, 8)}...` : 'NOT SET'
+    };
+    res.json(config);
+  });
+
+  // Generate signed URL for viewing images
+  app.get("/api/s3-signed-url/:objectKey", isAuthenticated, async (req, res) => {
+    try {
+      const { objectKey } = req.params;
+      const objectStorageService = new S3ObjectStorageService();
+      const signedUrl = await objectStorageService.getSignedObjectUrl(decodeURIComponent(objectKey), 3600); // 1 hour
+      res.json({ signedUrl });
+    } catch (error) {
+      console.error("Error generating signed URL:", error);
+      res.status(500).json({ message: "Failed to generate signed URL" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
