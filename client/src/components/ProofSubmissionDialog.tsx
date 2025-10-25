@@ -279,7 +279,7 @@ export function ProofSubmissionDialog({
       if (uploadedUrls.length > 10) {
         throw new Error("Maximum 10 files allowed");
       }
-
+      
       const res = await apiRequest("POST", "/api/proofs", {
         taskId,
         companyId,

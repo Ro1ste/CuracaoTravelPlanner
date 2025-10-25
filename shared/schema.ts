@@ -175,7 +175,7 @@ export const insertTaskProofSchema = createInsertSchema(taskProofs).pick({
   contentUrls: true,
   contentType: true,
 }).extend({
-  contentUrls: z.array(z.string().url())
+  contentUrls: z.array(z.string().min(1, "Content URL cannot be empty"))
     .min(6, "Please upload at least 6 images or videos")
     .max(10, "Maximum 10 files allowed"),
 });
