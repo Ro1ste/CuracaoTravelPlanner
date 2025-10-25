@@ -372,7 +372,7 @@ export function ProofSubmissionDialog({
                       >
                         {form.watch("contentType") === "image" ? (
                           <img
-                            src={url}
+                            src={url.startsWith('http') ? url : `/api/s3-signed-url/${encodeURIComponent(url)}`}
                             alt={`Uploaded image ${index + 1}`}
                             className="w-full h-full object-cover"
                             onError={(e) => {
@@ -383,7 +383,7 @@ export function ProofSubmissionDialog({
                           />
                         ) : (
                           <video
-                            src={url}
+                            src={url.startsWith('http') ? url : `/api/s3-signed-url/${encodeURIComponent(url)}`}
                             className="w-full h-full object-cover"
                             muted
                             onError={(e) => {

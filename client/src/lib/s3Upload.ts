@@ -59,18 +59,24 @@ export class S3UploadService {
     return Promise.all(uploadPromises);
   }
 
-  static async deleteFile(storageUrl: string): Promise<void> {
+  static async deleteFile(storageUrlOrKey: string): Promise<void> {
     try {
-      console.log('Deleting file from storage:', storageUrl);
+      console.log('Deleting file from storage:', storageUrlOrKey);
       
-      // Extract object key from S3 URL
-      const url = new URL(storageUrl);
-      // For signed URLs, extract from path before query params
-      const pathParts = url.pathname.split('/');
-      // Get the last part which should be the upload UUID
-      const objectKey = pathParts[pathParts.length - 1];
+      let objectKey: string;
       
-      console.log('Extracted object key:', objectKey);
+      // Check if it's already an object key (starts with "uploads/") or a full URL
+      if (storageUrlOrKey.startsWith('uploads/')) {
+        // It's already an object key
+        objectKey = storageUrlOrKey;
+      } else {
+        // It's a URL, extract the object key
+        const url = new URL(storageUrlOrKey);
+        const pathParts = url.pathname.split('/');
+        objectKey = pathParts[pathParts.length - 1];
+      }
+      
+      console.log('Using object key:', objectKey);
       
       const response = await fetch(`/api/upload/${encodeURIComponent(objectKey)}`, {
         method: 'DELETE',

@@ -44,14 +44,14 @@ export function ProofReview() {
     },
   });
 
-  // Convert path to full URL if needed
+  // Convert object key to signed URL
   const getFullUrl = (urlOrPath: string): string => {
     // If it's already a full URL, return as is
     if (urlOrPath.startsWith('http')) {
       return urlOrPath;
     }
-    // For S3, assume it's already a full URL or return as is
-    return urlOrPath;
+    // For object keys, return the signed URL endpoint
+    return `/api/s3-signed-url/${encodeURIComponent(urlOrPath)}`;
   };
 
   const reviewProofMutation = useMutation({
