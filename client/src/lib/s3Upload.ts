@@ -42,7 +42,7 @@ export class S3UploadService {
         throw new Error(`Upload failed: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
-      // Return the upload URL as-is since it's already the Google Cloud Storage URL
+      // Return the upload URL as-is since it's already the S3 signed URL
       // The upload URL contains the full path including bucket and object name
       console.log('Upload successful, using signed URL as public URL');
       return uploadUrl;
@@ -61,7 +61,7 @@ export class S3UploadService {
     try {
       console.log('Deleting file from storage:', storageUrl);
       
-      // Extract object key from Google Cloud Storage URL
+      // Extract object key from S3 URL
       const url = new URL(storageUrl);
       // For signed URLs, extract from path before query params
       const pathParts = url.pathname.split('/');
