@@ -41,15 +41,6 @@ export class EmailService {
           <div style="margin-top: 30px; text-align: center;">
             <h3 style="margin-bottom: 20px; color: #333; font-size: 18px;">Your Event QR Code</h3>
             <img src="cid:qr-code" alt="QR Code" style="max-width: 300px; display: block; margin: 0 auto 20px auto;" />
-            <div style="margin: 20px auto; padding: 20px; background-color: #e3f2fd; border-radius: 8px; text-align: left; max-width: 400px;">
-              <h4 style="margin: 0 0 15px 0; color: #1976d2; font-size: 16px;">How to use your QR Code:</h4>
-              <ol style="margin: 0; padding-left: 20px; font-size: 14px; color: #333; line-height: 1.6;">
-                <li style="margin-bottom: 8px;">Scan this QR code with your phone's camera or any QR code scanner</li>
-                <li style="margin-bottom: 8px;">It will open a check-in page in your browser</li>
-                <li style="margin-bottom: 8px;">Your check-in will be automatically processed</li>
-                <li style="margin-bottom: 8px;">You'll see a confirmation message</li>
-              </ol>
-            </div>
             <p style="margin-top: 20px; font-size: 12px; color: #666; line-height: 1.4;">
               You can also show this QR code to event staff for manual check-in.
             </p>

@@ -42,12 +42,12 @@ export class S3UploadService {
         throw new Error(`Upload failed: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
-      // Extract the object key from the signed URL
-      const url = new URL(uploadUrl);
-      const objectKey = url.pathname.substring(1); // Remove leading slash
-      
-      console.log('Upload successful, returning object key for signed URL generation:', objectKey);
-      return objectKey;
+        // Extract the object key from the signed URL
+        const url = new URL(uploadUrl);
+        const objectKey = url.pathname.substring(1); // Remove leading slash
+        
+        console.log('Upload successful, returning object key for CloudFront URL:', objectKey);
+        return objectKey;
     } catch (error) {
       console.error('S3 upload error:', error);
       throw error;

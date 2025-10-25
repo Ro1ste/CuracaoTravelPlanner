@@ -4,10 +4,6 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
 import { Response } from 'express';
 
-export interface ObjectAclPolicy {
-  owner: string;
-  visibility: 'public' | 'private';
-}
 
 export class S3ObjectStorageService {
   private s3Client: S3Client;
@@ -63,8 +59,7 @@ export class S3ObjectStorageService {
       Bucket: this.bucketName,
       Key: objectKey,
       ContentType: 'application/octet-stream',
-      // Make the object publicly readable
-      ACL: 'public-read'
+      // ACL removed - bucket does not support ACLs
     });
 
     try {
@@ -102,30 +97,6 @@ export class S3ObjectStorageService {
     return rawPath;
   }
 
-  // Set ACL policy for uploaded object
-  async trySetObjectEntityAclPolicy(
-    rawPath: string,
-    aclPolicy: ObjectAclPolicy
-  ): Promise<string> {
-    const objectKey = this.normalizeObjectEntityPath(rawPath);
-    
-    try {
-      // For S3, we'll use bucket policies for public access
-      // Private objects remain private by default
-      console.log(`Setting ACL for ${objectKey}:`, aclPolicy);
-      
-      // Return the public URL if visibility is public
-      if (aclPolicy.visibility === 'public') {
-        return this.getPublicUrl(objectKey);
-      }
-      
-      // For private objects, return the key for signed URL generation
-      return objectKey;
-    } catch (error) {
-      console.error('Error setting ACL policy:', error);
-      return rawPath;
-    }
-  }
 
   // Check if user can access object
   async canAccessObjectEntity({

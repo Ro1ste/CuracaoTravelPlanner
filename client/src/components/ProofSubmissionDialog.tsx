@@ -60,34 +60,41 @@ function ImagePreview({ objectKey, alt, className, onError }: {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSignedUrl = async () => {
+    const getImageUrl = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/s3-signed-url/${encodeURIComponent(objectKey)}`, {
-          credentials: 'include',
-        });
         
-        if (response.ok) {
-          const data = await response.json();
-          setImageUrl(data.signedUrl);
+        if (objectKey.startsWith('http')) {
+          // Already a full URL
+          setImageUrl(objectKey);
+        } else if (objectKey.startsWith('uploads/')) {
+          // Use CloudFront URL directly for uploaded files
+          const cloudFrontUrl = `https://d7zuhbdh1qtwa.cloudfront.net/${objectKey}`;
+          console.log('Using CloudFront URL for:', objectKey, '->', cloudFrontUrl);
+          setImageUrl(cloudFrontUrl);
         } else {
-          console.error('Failed to get signed URL:', response.status);
-          onError({ currentTarget: { style: { display: 'none' } } } as any);
+          // Fallback to signed URL for other cases
+          const response = await fetch(`/api/s3-signed-url/${encodeURIComponent(objectKey)}`, {
+            credentials: 'include',
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setImageUrl(data.signedUrl);
+          } else {
+            console.error('Failed to get signed URL:', response.status);
+            onError({ currentTarget: { style: { display: 'none' } } } as any);
+          }
         }
       } catch (error) {
-        console.error('Error fetching signed URL:', error);
+        console.error('Error getting image URL:', error);
         onError({ currentTarget: { style: { display: 'none' } } } as any);
       } finally {
         setLoading(false);
       }
     };
 
-    if (objectKey && !objectKey.startsWith('http')) {
-      fetchSignedUrl();
-    } else {
-      setImageUrl(objectKey);
-      setLoading(false);
-    }
+    getImageUrl();
   }, [objectKey, onError]);
 
   if (loading) {
@@ -111,7 +118,13 @@ function ImagePreview({ objectKey, alt, className, onError }: {
       src={imageUrl}
       alt={alt}
       className={className}
-      onError={onError}
+      onError={(e) => {
+        console.error('Image failed to load:', imageUrl);
+        onError(e);
+      }}
+      onLoad={() => {
+        console.log('Image loaded successfully:', imageUrl);
+      }}
     />
   );
 }
@@ -399,11 +412,11 @@ export function ProofSubmissionDialog({
                       Uploaded Files: {Array.from(uploadedFiles.values()).length} / 6 minimum
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+                  <div className="flex flex-wrap gap-4 p-4 max-h-80 overflow-y-auto">
                     {Array.from(uploadedFiles.values()).map(({ file, url }, index) => (
                       <div
                         key={index}
-                        className="aspect-square rounded-md bg-accent overflow-hidden relative group"
+                        className="w-32 h-32 rounded-lg bg-accent overflow-hidden relative group border-2 border-border shadow-md hover:shadow-lg transition-shadow flex-shrink-0 basis-1/3 max-w-[calc(33.333%-0.5rem)]"
                       >
                         {form.watch("contentType") === "image" ? (
                           <ImagePreview
