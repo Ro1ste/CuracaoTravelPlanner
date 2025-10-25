@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -47,6 +47,73 @@ interface ProofSubmissionDialogProps {
   companyId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+// Component to handle image preview with signed URL fetching
+function ImagePreview({ objectKey, alt, className, onError }: { 
+  objectKey: string; 
+  alt: string; 
+  className: string; 
+  onError: (e: React.SyntheticEvent<HTMLImageElement, Event>) => void;
+}) {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSignedUrl = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/s3-signed-url/${encodeURIComponent(objectKey)}`, {
+          credentials: 'include',
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setImageUrl(data.signedUrl);
+        } else {
+          console.error('Failed to get signed URL:', response.status);
+          onError({ currentTarget: { style: { display: 'none' } } } as any);
+        }
+      } catch (error) {
+        console.error('Error fetching signed URL:', error);
+        onError({ currentTarget: { style: { display: 'none' } } } as any);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (objectKey && !objectKey.startsWith('http')) {
+      fetchSignedUrl();
+    } else {
+      setImageUrl(objectKey);
+      setLoading(false);
+    }
+  }, [objectKey, onError]);
+
+  if (loading) {
+    return (
+      <div className={`${className} flex items-center justify-center bg-muted`}>
+        <div className="text-xs text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!imageUrl) {
+    return (
+      <div className={`${className} flex items-center justify-center bg-muted`}>
+        <div className="text-xs text-muted-foreground">Failed to load</div>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt={alt}
+      className={className}
+      onError={onError}
+    />
+  );
 }
 
 export function ProofSubmissionDialog({
@@ -322,38 +389,6 @@ export function ProofSubmissionDialog({
                 Upload {form.watch("contentType") === "image" ? "images (JPG, PNG)" : "videos (MP4, MOV)"}. Max size: 30MB per file. Upload at least 6 files.
               </FormDescription>
               
-              {/* Selected Files List */}
-              {selectedFiles.length > 0 && (
-                <div className="mt-3 p-3 border rounded-md bg-muted/30">
-                  <div className="flex items-center gap-2 mb-2">
-                    <ImageIcon className="h-4 w-4" />
-                    <span className="text-sm font-medium">
-                      Selected Files: {selectedFiles.length} / 6 minimum
-                    </span>
-                  </div>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {selectedFiles.map((file, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 border rounded text-sm">
-                        <div className="flex items-center gap-2">
-                          <Upload className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{file.name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            ({Math.round(file.size / 1024)}KB)
-                          </span>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleRemoveFile(file.name)}
-                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
               
               {/* Uploaded Files Preview */}
               {Array.from(uploadedFiles.values()).length > 0 && (
@@ -371,8 +406,8 @@ export function ProofSubmissionDialog({
                         className="aspect-square rounded-md bg-accent overflow-hidden relative group"
                       >
                         {form.watch("contentType") === "image" ? (
-                          <img
-                            src={url.startsWith('http') ? url : `/api/s3-signed-url/${encodeURIComponent(url)}`}
+                          <ImagePreview
+                            objectKey={url}
                             alt={`Uploaded image ${index + 1}`}
                             className="w-full h-full object-cover"
                             onError={(e) => {
