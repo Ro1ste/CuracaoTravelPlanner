@@ -99,13 +99,13 @@ function AuthenticatedApp() {
       // Clear any cached data
       queryClient.clear();
       
-      // Navigate to login page using wouter
-      setLocation('/login');
+      // Force page reload to clear all state
+      window.location.href = '/login';
     } catch (error) {
       console.error('Logout error:', error);
       // Clear cache and redirect anyway
       queryClient.clear();
-      setLocation('/login');
+      window.location.href = '/login';
     }
   };
 
