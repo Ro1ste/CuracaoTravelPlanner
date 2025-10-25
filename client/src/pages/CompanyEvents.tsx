@@ -126,7 +126,15 @@ export function CompanyEvents() {
                       <CardTitle className="line-clamp-2">{event.title}</CardTitle>
                       <CardDescription className="flex items-center gap-2">
                         <Calendar className="h-4 w-4" />
-                        {format(new Date(event.eventDate), "PPP")}
+                        {event.eventDate ? new Date(event.eventDate).toLocaleDateString('en-US', { 
+                          weekday: 'long',
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          timeZone: 'America/Curacao'
+                        }) : 'Date To Be Announced'}
                       </CardDescription>
                     </div>
                     {registration && (
@@ -138,9 +146,18 @@ export function CompanyEvents() {
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col">
                   <div className="flex-1 space-y-4">
-                    <p className="text-sm text-muted-foreground line-clamp-3">
-                      {event.description}
-                    </p>
+                    <div className="text-sm text-muted-foreground line-clamp-3 space-y-1">
+                      {event.description?.split('\n\n').map((paragraph, index) => (
+                        <p key={index} className="mb-1 last:mb-0">
+                          {paragraph.split('\n').map((line, lineIndex) => (
+                            <span key={lineIndex}>
+                              {line}
+                              {lineIndex < paragraph.split('\n').length - 1 && <br />}
+                            </span>
+                          ))}
+                        </p>
+                      )) || <p>{event.description}</p>}
+                    </div>
                     
                     {event.youtubeUrl && (
                       <Button

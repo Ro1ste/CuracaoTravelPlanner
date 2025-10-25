@@ -1156,7 +1156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const updatedRegistration = await storage.updateRegistrationStatus(req.params.id, 'approved');
         
         const emailTemplate = (event.emailSubject && event.emailSubject.trim() !== '' && event.emailBodyText && event.emailBodyText.trim() !== '')
-          ? { subject: event.emailSubject, text: event.emailBodyText }
+          ? { subject: event.emailSubject, text: EmailService.formatEmailText(event.emailBodyText) }
           : EmailService.getDefaultTemplate(event.title, `${registration.firstName} ${registration.lastName}`);
 
         // Send email with QR code
@@ -1213,7 +1213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const qrCodeDataUrl = await QRCodeService.generateQRCode(qrPayload);
 
       const emailTemplate = (event.emailSubject && event.emailSubject.trim() !== '' && event.emailBodyText && event.emailBodyText.trim() !== '')
-        ? { subject: event.emailSubject, text: event.emailBodyText }
+        ? { subject: event.emailSubject, text: EmailService.formatEmailText(event.emailBodyText) }
         : EmailService.getDefaultTemplate(event.title, `${registration.firstName} ${registration.lastName}`);
 
       await EmailService.sendEmail({

@@ -588,9 +588,18 @@ export function EventsManagement() {
                       <CardTitle className="text-xl mb-2" data-testid={`event-title-${event.id}`}>
                         {event.title}
                       </CardTitle>
-                      <p className="text-sm text-muted-foreground mb-3" data-testid={`event-description-${event.id}`}>
-                        {event.description}
-                      </p>
+                      <div className="text-sm text-muted-foreground mb-3 space-y-2" data-testid={`event-description-${event.id}`}>
+                        {event.description?.split('\n\n').map((paragraph, index) => (
+                          <p key={index} className="mb-2 last:mb-0">
+                            {paragraph.split('\n').map((line, lineIndex) => (
+                              <span key={lineIndex}>
+                                {line}
+                                {lineIndex < paragraph.split('\n').length - 1 && <br />}
+                              </span>
+                            ))}
+                          </p>
+                        )) || <p>{event.description}</p>}
+                      </div>
                       <div className="flex items-center gap-4 text-sm">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4" />
@@ -599,7 +608,10 @@ export function EventsManagement() {
                               ? new Date(event.eventDate).toLocaleDateString('en-US', { 
                                   year: 'numeric', 
                                   month: 'long', 
-                                  day: 'numeric' 
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  timeZone: 'America/Curacao'
                                 })
                               : 'Date TBD'}
                           </span>

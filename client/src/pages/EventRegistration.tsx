@@ -280,9 +280,18 @@ export function EventRegistration() {
                   {event.title}
                 </h1>
                 
-                <p className="text-lg text-muted-foreground leading-relaxed mb-6" data-testid="event-description">
-                  {event.description}
-                </p>
+                <div className="text-lg text-muted-foreground leading-relaxed mb-6 space-y-4" data-testid="event-description">
+                  {event.description?.split('\n\n').map((paragraph, index) => (
+                    <p key={index} className="mb-4 last:mb-0">
+                      {paragraph.split('\n').map((line, lineIndex) => (
+                        <span key={lineIndex}>
+                          {line}
+                          {lineIndex < paragraph.split('\n').length - 1 && <br />}
+                        </span>
+                      ))}
+                    </p>
+                  )) || <p>{event.description}</p>}
+                </div>
 
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 text-muted-foreground">
@@ -294,7 +303,8 @@ export function EventRegistration() {
                         month: 'long', 
                         day: 'numeric',
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
+                        timeZone: 'America/Curacao'
                       }) : 'Date To Be Announced'}
                     </span>
                   </div>
