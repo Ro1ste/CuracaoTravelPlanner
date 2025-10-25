@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Trophy, Medal, Award, Crown } from "lucide-react";
 import { WinnerCelebration } from "@/components/WinnerCelebration";
 import { useState } from "react";
+import { useTheme } from "next-themes";
 
 interface LeaderboardEntry {
   id: string;
@@ -28,6 +29,7 @@ export function LeaderboardCard({
 }: LeaderboardCardProps) {
   const [showWinnerCelebration, setShowWinnerCelebration] = useState(false);
   const [winnerCompany, setWinnerCompany] = useState<LeaderboardEntry | null>(null);
+  const { theme } = useTheme();
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
@@ -71,7 +73,13 @@ export function LeaderboardCard({
           <div 
             key={entry.id}
             className={`flex items-center justify-between p-3 rounded-lg hover-elevate ${
-              entry.rank === 1 ? 'cursor-pointer border border-yellow-300 bg-gradient-to-r from-yellow-50 to-orange-50' : ''
+              entry.rank === 1 
+                ? `cursor-pointer border ${
+                    theme === 'dark' 
+                      ? 'border-yellow-400 bg-gradient-to-r from-yellow-900/30 to-orange-900/30 text-yellow-100' 
+                      : 'border-yellow-300 bg-gradient-to-r from-yellow-50 to-orange-50'
+                  }` 
+                : ''
             }`}
             data-testid={`leaderboard-entry-${entry.rank}`}
             onClick={() => handleWinnerClick(entry)}

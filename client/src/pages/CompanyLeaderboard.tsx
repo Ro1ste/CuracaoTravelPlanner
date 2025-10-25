@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Trophy, Medal, Award, Flame, Crown } from "lucide-react";
 import { WinnerCelebration } from "@/components/WinnerCelebration";
 import { useState } from "react";
+import { useTheme } from "next-themes";
 
 interface LeaderboardEntry {
   id: string;
@@ -19,6 +20,7 @@ export function CompanyLeaderboard() {
   
   const [showWinnerCelebration, setShowWinnerCelebration] = useState(false);
   const [winnerCompany, setWinnerCompany] = useState<LeaderboardEntry | null>(null);
+  const { theme } = useTheme();
 
   if (isLoading) {
     return (
@@ -65,7 +67,13 @@ export function CompanyLeaderboard() {
                 <div
                   key={entry.id}
                   className={`flex items-center justify-between p-4 rounded-lg border bg-card hover-elevate ${
-                    entry.rank === 1 ? 'cursor-pointer border-yellow-300 bg-gradient-to-r from-yellow-50 to-orange-50' : ''
+                    entry.rank === 1 
+                      ? `cursor-pointer ${
+                          theme === 'dark' 
+                            ? 'border-yellow-400 bg-gradient-to-r from-yellow-900/30 to-orange-900/30 text-yellow-100' 
+                            : 'border-yellow-300 bg-gradient-to-r from-yellow-50 to-orange-50'
+                        }` 
+                      : ''
                   }`}
                   data-testid={`leaderboard-entry-${entry.rank}`}
                   onClick={() => handleWinnerClick(entry)}
