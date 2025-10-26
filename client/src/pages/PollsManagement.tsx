@@ -63,13 +63,11 @@ export default function PollsManagement() {
   const pollForm = useForm({
     resolver: zodResolver(pollFormSchema),
     defaultValues: {
-      subjectId: "",
       question: "",
       option1: "",
       option2: "",
       option3: "",
       option4: "",
-      orderIndex: 0,
     },
   });
 
