@@ -82,11 +82,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set HTTP-only cookie with JWT token
       res.cookie('auth_token', result.token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'none',
+        secure: false, // Set to false for local development
+        sameSite: 'lax', // Use 'lax' for better compatibility
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        path: '/',
-        domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost'
+        path: '/'
+        // No domain restriction - let browser handle it
       });
       
       
@@ -106,10 +106,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Clear the HTTP-only cookie
     res.clearCookie('auth_token', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'none',
-      path: '/',
-      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost'
+      secure: false,
+      sameSite: 'lax',
+      path: '/'
     });
     
     res.json({ success: true, message: "Logged out successfully" });
