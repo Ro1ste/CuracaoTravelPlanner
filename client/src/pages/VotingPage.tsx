@@ -19,6 +19,8 @@ export default function VotingPage() {
   const [votedPolls, setVotedPolls] = useState<Set<string>>(new Set());
   const [selectedOption, setSelectedOption] = useState<string>("");
   const [aiInsight, setAiInsight] = useState<string>("");
+  const [voterPollIndex, setVoterPollIndex] = useState<number>(0);
+  const [showNextPollButton, setShowNextPollButton] = useState<boolean>(false);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -33,6 +35,11 @@ export default function VotingPage() {
     if (voted) {
       setVotedPolls(new Set(JSON.parse(voted)));
     }
+
+    const savedIndex = localStorage.getItem(`voter_poll_index_${shortCode}`);
+    if (savedIndex) {
+      setVoterPollIndex(parseInt(savedIndex, 10));
+    }
   }, [shortCode]);
 
   const { data: subject, isLoading: subjectLoading } = useQuery<Subject>({
@@ -45,7 +52,7 @@ export default function VotingPage() {
     enabled: !!subject?.id,
   });
 
-  const currentPoll = polls.find((p) => p.orderIndex === subject?.currentPollIndex);
+  const currentPoll = polls.find((p) => p.orderIndex === voterPollIndex);
 
   const { data: voteCounts = {} } = useQuery<Record<string, number>>({
     queryKey: ["/api/polls", currentPoll?.id, "votes"],
@@ -73,8 +80,10 @@ export default function VotingPage() {
           data.voteCounts
         );
       } else if (data.type === "currentPollChange") {
-        queryClient.invalidateQueries({ queryKey: ["/api/subjects/code", shortCode] });
-        queryClient.invalidateQueries({ queryKey: ["/api/subjects", subject.id, "polls"] });
+        const adminPollIndex = data.currentPollIndex;
+        if (adminPollIndex > voterPollIndex) {
+          setShowNextPollButton(true);
+        }
       }
     };
 
@@ -106,16 +115,22 @@ export default function VotingPage() {
     },
   });
 
-  const advancePollMutation = useMutation({
-    mutationFn: async () => {
-      if (!subject) return;
-      return await apiRequest("POST", `/api/subjects/${subject.id}/advance`, {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/subjects/code", shortCode] });
-      setSelectedOption("");
-    },
-  });
+  const handleNextPoll = () => {
+    const newIndex = voterPollIndex + 1;
+    setVoterPollIndex(newIndex);
+    setShowNextPollButton(false);
+    setSelectedOption("");
+    localStorage.setItem(`voter_poll_index_${shortCode}`, newIndex.toString());
+  };
+
+  useEffect(() => {
+    if (subject) {
+      const adminPollIndex = subject.currentPollIndex || 0;
+      if (adminPollIndex > voterPollIndex) {
+        setShowNextPollButton(true);
+      }
+    }
+  }, [subject?.currentPollIndex, voterPollIndex]);
 
   useEffect(() => {
     if (currentPoll) {
@@ -281,15 +296,14 @@ export default function VotingPage() {
                   Total votes: {totalVotes}
                 </p>
 
-                {/* Next Poll Button */}
-                {(subject.currentPollIndex || 0) < polls.length - 1 && (
+                {/* Next Poll Button - Shows when admin advances */}
+                {showNextPollButton && voterPollIndex < polls.length - 1 && (
                   <Button
-                    onClick={() => advancePollMutation.mutate()}
-                    disabled={advancePollMutation.isPending}
+                    onClick={handleNextPoll}
                     className="w-full h-12 text-lg font-bold bg-black text-white hover:bg-gray-800 mt-4"
                     data-testid="button-next-poll"
                   >
-                    {advancePollMutation.isPending ? "Loading..." : "Next Poll"}
+                    Next Poll
                     <ChevronRight className="w-5 h-5 ml-2" />
                   </Button>
                 )}
