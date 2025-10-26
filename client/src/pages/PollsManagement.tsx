@@ -74,7 +74,7 @@ export default function PollsManagement() {
   const createSubjectMutation = useMutation({
     mutationFn: async (data: z.infer<typeof subjectFormSchema>) => {
       const shortCode = data.shortCode || nanoid(6).toUpperCase();
-      return await apiRequest("/api/subjects", "POST", { ...data, shortCode });
+      return await apiRequest("POST", "/api/subjects", { ...data, shortCode });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subjects"] });
@@ -96,7 +96,7 @@ export default function PollsManagement() {
 
   const deleteSubjectMutation = useMutation({
     mutationFn: async (id: string) => {
-      return await apiRequest(`/api/subjects/${id}`, "DELETE");
+      return await apiRequest("DELETE", `/api/subjects/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subjects"] });
@@ -121,7 +121,7 @@ export default function PollsManagement() {
 
   const createPollMutation = useMutation({
     mutationFn: async (data: InsertPoll) => {
-      return await apiRequest("/api/polls", "POST", data);
+      return await apiRequest("POST", "/api/polls", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subjects", selectedSubject?.id, "polls"] });
@@ -143,7 +143,7 @@ export default function PollsManagement() {
 
   const deletePollMutation = useMutation({
     mutationFn: async (id: string) => {
-      return await apiRequest(`/api/polls/${id}`, "DELETE");
+      return await apiRequest("DELETE", `/api/polls/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subjects", selectedSubject?.id, "polls"] });
