@@ -72,8 +72,24 @@ export default function PollsManagement() {
 
   const createSubjectMutation = useMutation({
     mutationFn: async (data: z.infer<typeof subjectFormSchema>) => {
-      const shortCode = data.shortCode || nanoid(6).toUpperCase();
-      return await apiRequest("POST", "/api/subjects", { ...data, shortCode });
+      let shortCode = data.shortCode || nanoid(6).toUpperCase();
+      let attempts = 0;
+      const maxAttempts = 5;
+      
+      while (attempts < maxAttempts) {
+        try {
+          return await apiRequest("POST", "/api/subjects", { ...data, shortCode });
+        } catch (error: any) {
+          if (error.message?.includes("duplicate") && !data.shortCode && attempts < maxAttempts - 1) {
+            shortCode = nanoid(6).toUpperCase();
+            attempts++;
+          } else {
+            throw error;
+          }
+        }
+      }
+      
+      throw new Error("Failed to generate unique short code");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subjects"] });
@@ -85,9 +101,13 @@ export default function PollsManagement() {
       });
     },
     onError: (error: any) => {
+      const errorMsg = error.message?.includes("duplicate") 
+        ? "This short code already exists. Please use a different code."
+        : error.message || "Failed to create subject";
+      
       toast({
         title: "Error",
-        description: error.message || "Failed to create subject",
+        description: errorMsg,
         variant: "destructive",
       });
     },
