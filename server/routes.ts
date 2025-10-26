@@ -1438,9 +1438,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Already at last poll" });
       }
       
+      const newIndex = currentIndex + 1;
       const updatedSubject = await storage.updateSubject(req.params.id, {
-        currentPollIndex: currentIndex + 1,
+        currentPollIndex: newIndex,
       });
+      
+      // Broadcast poll change via WebSocket
+      try {
+        const { pollWebSocketService } = await import("./websocket");
+        if (pollWebSocketService) {
+          pollWebSocketService.broadcastCurrentPollChange(req.params.id, newIndex);
+        }
+      } catch (error) {
+        console.error("Error broadcasting poll change:", error);
+      }
       
       res.json(updatedSubject);
     } catch (error: any) {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -19,6 +19,7 @@ export default function VotingPage() {
   const [votedPolls, setVotedPolls] = useState<Set<string>>(new Set());
   const [selectedOption, setSelectedOption] = useState<string>("");
   const [aiInsight, setAiInsight] = useState<string>("");
+  const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     let id = localStorage.getItem("poll_session_id");
@@ -51,6 +52,38 @@ export default function VotingPage() {
     enabled: !!currentPoll?.id,
     refetchInterval: 3000,
   });
+
+  useEffect(() => {
+    if (!subject?.id) return;
+
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const ws = new WebSocket(`${protocol}//${window.location.host}/ws/polls`);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: "subscribe", subjectId: subject.id }));
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      
+      if (data.type === "voteUpdate" && currentPoll && data.pollId === currentPoll.id) {
+        queryClient.setQueryData(
+          ["/api/polls", currentPoll.id, "votes"],
+          data.voteCounts
+        );
+      } else if (data.type === "currentPollChange") {
+        queryClient.invalidateQueries({ queryKey: ["/api/subjects/code", shortCode] });
+        queryClient.invalidateQueries({ queryKey: ["/api/subjects", subject.id, "polls"] });
+      }
+    };
+
+    return () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+    };
+  }, [subject?.id, currentPoll?.id, shortCode]);
 
   const voteMutation = useMutation({
     mutationFn: async (optionId: string) => {
