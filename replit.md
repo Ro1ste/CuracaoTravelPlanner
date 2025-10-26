@@ -125,6 +125,11 @@ The platform is built with a Fullstack JavaScript stack, utilizing React with Ty
   - Admin: Location input available in both create and edit event forms
   - Display: Location shown with MapPin icon below date/time on registration page
   - Styling: Location icon colored with event branding color for consistency
+- ✅ Enhanced check-in display with watermark and vibrant persona icons
+  - Watermark: Added sports/wellness background image overlay with subtle opacity (5-8%)
+  - Persona Icons: Changed to vibrant emerald green (#10b981) for all display states
+  - UX: Green icons bring energy and life to check-in experience
+  - Consistency: Applied to single attendee, group check-in, and waiting displays
 
 **Admin Login Configuration (October 1, 2025):**
 - ✅ Created production admin account: admin@curacaointernationalsportsweek.com (password: Admin2024!)
