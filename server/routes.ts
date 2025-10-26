@@ -1423,6 +1423,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Advance poll (Public - for voting page)
+  app.post('/api/subjects/:id/advance', async (req, res) => {
+    try {
+      const subject = await storage.getSubject(req.params.id);
+      if (!subject) {
+        return res.status(404).json({ message: "Subject not found" });
+      }
+      
+      const polls = await storage.getPollsBySubject(req.params.id);
+      const currentIndex = subject.currentPollIndex || 0;
+      
+      if (currentIndex >= polls.length - 1) {
+        return res.status(400).json({ message: "Already at last poll" });
+      }
+      
+      const updatedSubject = await storage.updateSubject(req.params.id, {
+        currentPollIndex: currentIndex + 1,
+      });
+      
+      res.json(updatedSubject);
+    } catch (error: any) {
+      console.error("Error advancing poll:", error);
+      res.status(400).json({ message: error.message || "Failed to advance poll" });
+    }
+  });
+
   // Update subject (Admin only)
   app.patch('/api/subjects/:id', isAuthenticated, isAdmin, async (req, res) => {
     try {

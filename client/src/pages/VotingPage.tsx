@@ -76,12 +76,7 @@ export default function VotingPage() {
   const advancePollMutation = useMutation({
     mutationFn: async () => {
       if (!subject) return;
-      const currentIndex = subject.currentPollIndex || 0;
-      if (currentIndex < polls.length - 1) {
-        return await apiRequest("PATCH", `/api/subjects/${subject.id}`, {
-          currentPollIndex: currentIndex + 1,
-        });
-      }
+      return await apiRequest("POST", `/api/subjects/${subject.id}/advance`, {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subjects/code", shortCode] });
