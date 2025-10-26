@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useRoute } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { type Subject, type Poll } from "@shared/schema";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
 import QRCode from "qrcode";
 import ciswLogo from "@assets/WhatsApp Image 2025-10-26 at 17.19.45_01be175f_1761513642893.jpg";
+import { Button } from "@/components/ui/button";
+import { ChevronRight } from "lucide-react";
 
 const CHART_COLORS = ["#000000", "#404040", "#737373", "#A3A3A3"];
 
@@ -76,6 +78,22 @@ export default function PollDisplay() {
       }
     };
   }, [subject?.id, currentPoll?.id]);
+
+  const advancePollMutation = useMutation({
+    mutationFn: async () => {
+      if (!subject) return;
+      const currentIndex = subject.currentPollIndex || 0;
+      if (currentIndex < polls.length - 1) {
+        return await apiRequest("PATCH", `/api/subjects/${subject.id}`, {
+          currentPollIndex: currentIndex + 1,
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/subjects/code", shortCode] });
+      setAiCommentary("");
+    },
+  });
 
   useEffect(() => {
     if (!currentPoll || Object.keys(voteCounts).length === 0 || isGeneratingAI) return;
@@ -186,11 +204,26 @@ export default function PollDisplay() {
                 <p className="text-gray-600 text-sm mt-1">{subject.description}</p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-500 uppercase tracking-wide font-semibold">Live Poll</p>
-              <p className="text-2xl font-bold text-black">
-                Question {(subject.currentPollIndex || 0) + 1} / {polls.length}
-              </p>
+            <div className="text-right space-y-3">
+              <div>
+                <p className="text-sm text-gray-500 uppercase tracking-wide font-semibold">Live Poll</p>
+                <p className="text-2xl font-bold text-black">
+                  Question {(subject.currentPollIndex || 0) + 1} / {polls.length}
+                </p>
+              </div>
+              
+              {/* Next Poll Button */}
+              {(subject.currentPollIndex || 0) < polls.length - 1 && (
+                <Button
+                  onClick={() => advancePollMutation.mutate()}
+                  disabled={advancePollMutation.isPending}
+                  className="bg-black text-white hover:bg-gray-800 font-bold px-6"
+                  data-testid="button-next-poll-display"
+                >
+                  {advancePollMutation.isPending ? "Loading..." : "Next Poll"}
+                  <ChevronRight className="w-5 h-5 ml-2" />
+                </Button>
+              )}
             </div>
           </div>
         </header>
