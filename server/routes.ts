@@ -1384,10 +1384,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get subject by ID (Public)
-  app.get('/api/subjects/:id', async (req, res) => {
+  // Get subject by short code (Public) - MUST be before /:id route
+  app.get('/api/subjects/code/:shortCode', async (req, res) => {
     try {
-      const subject = await storage.getSubjectById(req.params.id);
+      const subject = await storage.getSubjectByShortCode(req.params.shortCode);
       if (!subject) {
         return res.status(404).json({ message: "Subject not found" });
       }
@@ -1398,10 +1398,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get subject by short code (Public)
-  app.get('/api/subjects/code/:shortCode', async (req, res) => {
+  // Get subject by ID (Public)
+  app.get('/api/subjects/:id', async (req, res) => {
     try {
-      const subject = await storage.getSubjectByShortCode(req.params.shortCode);
+      const subject = await storage.getSubjectById(req.params.id);
       if (!subject) {
         return res.status(404).json({ message: "Subject not found" });
       }

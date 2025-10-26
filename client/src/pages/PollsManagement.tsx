@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertSubjectSchema, insertPollSchema, type Subject, type Poll } from "@shared/schema";
+import { insertSubjectSchema, insertPollSchema, type Subject, type Poll, type InsertPoll } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, QrCode, ExternalLink } from "lucide-react";
 import { nanoid } from "nanoid";
@@ -120,7 +120,7 @@ export default function PollsManagement() {
   });
 
   const createPollMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof pollFormSchema>) => {
+    mutationFn: async (data: InsertPoll) => {
       return await apiRequest("/api/polls", "POST", data);
     },
     onSuccess: () => {
