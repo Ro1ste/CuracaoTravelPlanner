@@ -116,6 +116,10 @@ The platform is built with a Fullstack JavaScript stack, utilizing React with Ty
 - ✅ Increased input heights to h-11 (44px) for better touch targets and accessibility
 - ✅ Implemented split-screen group check-in display - automatically detects when 2-4 people check in within 30 seconds and displays them side-by-side in an adaptive grid
 - ✅ Event title prominently displayed on check-in display - shows "Welcome to [Event Title]" for both single and group check-ins
+- ✅ Fixed timezone handling for Curacao (AST, UTC-4) - all events now use Atlantic Standard Time consistently regardless of server or user location
+  - Backend: Timezone-agnostic parsing using explicit UTC-4 offset (ISO 8601 format)
+  - Frontend: Converts UTC to Curacao time for editing, maintains consistency
+  - Validation: Added try-catch blocks and date validation for both create and update operations
 
 **Admin Login Configuration (October 1, 2025):**
 - ✅ Created production admin account: admin@curacaointernationalsportsweek.com (password: Admin2024!)

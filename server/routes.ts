@@ -799,6 +799,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // ========== EVENT ROUTES ==========
+  
+  // Helper function to convert Curacao time (UTC-4) to UTC
+  const curacaoToUTC = (dateString: string): Date => {
+    // dateString format: "2024-10-26T14:00" (from datetime-local input)
+    // This represents 2PM in Curacao (AST, UTC-4)
+    // Parse as ISO string with explicit Curacao timezone offset
+    const withTimezone = dateString + ':00-04:00'; // Add seconds and UTC-4 offset
+    const utcDate = new Date(withTimezone);
+    
+    // Validate the result
+    if (isNaN(utcDate.getTime())) {
+      throw new Error('Invalid date format');
+    }
+    
+    return utcDate;
+  };
+  
+  // Helper function to convert UTC to Curacao time (UTC-4) for display
+  const utcToCuracao = (utcDate: Date): string => {
+    // Subtract 4 hours to get Curacao time
+    const curacaoTime = new Date(utcDate.getTime() - (4 * 60 * 60 * 1000));
+    const year = curacaoTime.getUTCFullYear();
+    const month = String(curacaoTime.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(curacaoTime.getUTCDate()).padStart(2, '0');
+    const hours = String(curacaoTime.getUTCHours()).padStart(2, '0');
+    const minutes = String(curacaoTime.getUTCMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+  
   // Get all active events
   app.get('/api/events', async (req, res) => {
     try {
@@ -827,7 +856,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create event (admin only)
   app.post('/api/events', isAuthenticated, isAdmin, async (req, res) => {
     try {
-      const event = await storage.createEvent(req.body);
+      const eventData = { ...req.body };
+      
+      // Convert eventDate from Curacao time (AST, UTC-4) to UTC
+      if (eventData.eventDate && typeof eventData.eventDate === 'string') {
+        try {
+          eventData.eventDate = curacaoToUTC(eventData.eventDate);
+        } catch (error) {
+          return res.status(400).json({ message: "Invalid event date format" });
+        }
+      }
+      
+      const event = await storage.createEvent(eventData);
       res.status(201).json(event);
     } catch (error) {
       console.error("Error creating event:", error);
@@ -879,15 +919,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/events/:id', isAuthenticated, isAdmin, async (req, res) => {
     try {
       const eventId = req.params.id;
-      const updates = req.body;
+      const updates = { ...req.body };
       
-      // Convert eventDate string to Date object if present
+      // Convert eventDate from Curacao time (AST, UTC-4) to UTC
       if (updates.eventDate && typeof updates.eventDate === 'string') {
-        const dateObj = new Date(updates.eventDate);
-        if (isNaN(dateObj.getTime())) {
+        try {
+          updates.eventDate = curacaoToUTC(updates.eventDate);
+        } catch (error) {
           return res.status(400).json({ message: "Invalid event date format" });
         }
-        updates.eventDate = dateObj;
       }
       
       const updatedEvent = await storage.updateEvent(eventId, updates);

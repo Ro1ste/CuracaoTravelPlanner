@@ -84,16 +84,18 @@ export function EventsManagement() {
   // Reset editForm when editingEvent changes
   useEffect(() => {
     if (editingEvent) {
-      // Format date for datetime-local input without timezone conversion
+      // Format date for datetime-local input in Curacao time (AST, UTC-4)
       let formattedDate = "";
       if (editingEvent.eventDate) {
-        const date = new Date(editingEvent.eventDate);
-        // Get local date/time components to avoid timezone conversion
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
+        // The date from server is in UTC, convert to Curacao time (UTC-4)
+        const utcDate = new Date(editingEvent.eventDate);
+        // Subtract 4 hours to get Curacao time
+        const curacaoTime = new Date(utcDate.getTime() - (4 * 60 * 60 * 1000));
+        const year = curacaoTime.getUTCFullYear();
+        const month = String(curacaoTime.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(curacaoTime.getUTCDate()).padStart(2, '0');
+        const hours = String(curacaoTime.getUTCHours()).padStart(2, '0');
+        const minutes = String(curacaoTime.getUTCMinutes()).padStart(2, '0');
         formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
       }
       
