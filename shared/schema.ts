@@ -288,7 +288,8 @@ export const insertSubjectSchema = createInsertSchema(subjects).pick({
   title: true,
   description: true,
   shortCode: true,
-  currentPollIndex: true,
+}).extend({
+  currentPollIndex: z.number().optional(),
 });
 
 export const insertPollSchema = createInsertSchema(polls).pick({

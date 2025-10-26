@@ -56,7 +56,6 @@ export default function PollsManagement() {
       title: "",
       description: "",
       shortCode: "",
-      currentPollIndex: 0,
     },
   });
 
