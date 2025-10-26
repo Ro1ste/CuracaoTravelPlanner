@@ -36,6 +36,7 @@ export default function PollDisplay() {
   const { data: voteCounts = {} } = useQuery<Record<string, number>>({
     queryKey: ["/api/polls", currentPoll?.id, "votes"],
     enabled: !!currentPoll?.id,
+    refetchInterval: 2000,
   });
 
   useEffect(() => {
