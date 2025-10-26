@@ -1,4 +1,4 @@
-import { Home, Trophy, Calendar, Settings, Users, BarChart3, FileText, CheckSquare, ShieldCheck } from "lucide-react";
+import { Home, Trophy, Calendar, Settings, Users, BarChart3, FileText, CheckSquare, ShieldCheck, BarChart2 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -71,6 +71,11 @@ export function AppSidebar({ userType }: AppSidebarProps) {
       title: "Events",
       url: "/events",
       icon: Calendar,
+    },
+    {
+      title: "Polls",
+      url: "/polls",
+      icon: BarChart2,
     },
     {
       title: "Analytics",

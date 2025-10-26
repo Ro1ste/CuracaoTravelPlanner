@@ -1546,6 +1546,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate AI commentary for poll results
+  app.post('/api/polls/:pollId/commentary', async (req, res) => {
+    try {
+      const { question, results } = req.body;
+      
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(500).json({ message: "OpenAI API key not configured" });
+      }
+
+      const resultsText = results
+        .map((r: { option: string; votes: number; percentage: number }) => 
+          `${r.option}: ${r.votes} votes (${r.percentage}%)`
+        )
+        .join("\n");
+
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are an energetic sports commentator providing brief, engaging insights about live poll results. Keep responses to 2-3 sentences maximum. Be enthusiastic and highlight interesting patterns or close races.",
+            },
+            {
+              role: "user",
+              content: `Question: ${question}\n\nCurrent results:\n${resultsText}\n\nProvide brief, exciting commentary about these results.`,
+            },
+          ],
+          max_tokens: 100,
+          temperature: 0.8,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.choices && data.choices[0]?.message?.content) {
+        res.json({ commentary: data.choices[0].message.content });
+      } else {
+        res.status(500).json({ message: "Failed to generate commentary" });
+      }
+    } catch (error: any) {
+      console.error("Error generating AI commentary:", error);
+      res.status(500).json({ message: "Failed to generate commentary" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

@@ -28,6 +28,9 @@ import { ProofReview } from "@/pages/ProofReview";
 import { PasswordResetRequest } from "@/pages/PasswordResetRequest";
 import { PasswordResetConfirm } from "@/pages/PasswordResetConfirm";
 import { CheckInDisplay } from "@/pages/CheckInDisplay";
+import PollsManagement from "@/pages/PollsManagement";
+import VotingPage from "@/pages/VotingPage";
+import PollDisplay from "@/pages/PollDisplay";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -52,6 +55,8 @@ function Router() {
         <Route path="/e/:shortCode" component={EventRegistration} />
         <Route path="/event-registration" component={EventRegistration} />
         <Route path="/event-registration/:eventId" component={EventRegistration} />
+        <Route path="/vote/:shortCode" component={VotingPage} />
+        <Route path="/poll-display/:shortCode" component={PollDisplay} />
         <Route component={Landing} />
       </Switch>
     );
@@ -71,6 +76,7 @@ function Router() {
           <Route path="/events" component={EventsManagement} />
           <Route path="/events/:eventId/attendees" component={AttendeesManagement} />
           <Route path="/admin/proofs/:proofId" component={ProofReview} />
+          <Route path="/polls" component={PollsManagement} />
         </>
       ) : (
         <>
@@ -158,9 +164,10 @@ function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
   const [location] = useLocation();
 
-  // Event registration and check-in display pages should always render standalone
+  // Event registration, check-in display, and polling pages should always render standalone
   const isEventRegistration = location.startsWith('/event-registration') || location.startsWith('/e/');
   const isCheckInDisplay = location.startsWith('/checkin-display/');
+  const isPollingPage = location.startsWith('/vote/') || location.startsWith('/poll-display/');
 
   if (isLoading) {
     return (
@@ -186,6 +193,16 @@ function AppContent() {
     return (
       <Switch>
         <Route path="/checkin-display/:eventId" component={CheckInDisplay} />
+      </Switch>
+    );
+  }
+
+  // Always render polling pages standalone (no sidebar/header)
+  if (isPollingPage) {
+    return (
+      <Switch>
+        <Route path="/vote/:shortCode" component={VotingPage} />
+        <Route path="/poll-display/:shortCode" component={PollDisplay} />
       </Switch>
     );
   }

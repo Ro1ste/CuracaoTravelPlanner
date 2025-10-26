@@ -287,6 +287,8 @@ export type PasswordResetConfirm = z.infer<typeof passwordResetConfirmSchema>;
 export const insertSubjectSchema = createInsertSchema(subjects).pick({
   title: true,
   description: true,
+  shortCode: true,
+  currentPollIndex: true,
 });
 
 export const insertPollSchema = createInsertSchema(polls).pick({
