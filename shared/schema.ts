@@ -85,6 +85,7 @@ export const events = pgTable("events", {
   shortCode: varchar("short_code").unique().notNull(),
   title: varchar("title").notNull(),
   description: text("description"),
+  location: text("location"),
   youtubeUrl: varchar("youtube_url"),
   eventDate: timestamp("event_date").notNull(),
   brandingColor: varchar("branding_color").default("#211100"),
@@ -183,6 +184,7 @@ export const insertTaskProofSchema = createInsertSchema(taskProofs).pick({
 export const insertEventSchema = createInsertSchema(events).pick({
   title: true,
   description: true,
+  location: true,
   youtubeUrl: true,
   eventDate: true,
   brandingColor: true,
