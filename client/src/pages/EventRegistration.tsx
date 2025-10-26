@@ -308,6 +308,15 @@ export function EventRegistration() {
                       }) : 'Date To Be Announced'}
                     </span>
                   </div>
+                  
+                  {event.location && (
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      <MapPin className="h-5 w-5" style={{ color: event.brandingColor || "#ff6600" }} />
+                      <span className="text-base" data-testid="event-location">
+                        {event.location}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* YouTube Video Section */}
