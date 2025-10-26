@@ -3,6 +3,7 @@ import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import type { Event } from "@shared/schema";
 import ciswLogo from "@assets/cisw-logo.png";
+import watermarkImage from "@assets/WhatsApp Image 2025-10-26 at 11.22.13_f28a40f0_1761492297303.jpg";
 
 // Sanitized check-in type (matches API response)
 type CheckInDisplay = {
@@ -141,8 +142,21 @@ export function CheckInDisplay() {
       }}
       data-testid="checkin-display-container"
     >
+      {/* Watermark Background Image */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center"
+        style={{
+          backgroundImage: `url(${watermarkImage})`,
+          opacity: isDarkMode ? 0.08 : 0.05,
+          backgroundPosition: 'center',
+          backgroundSize: 'cover',
+          pointerEvents: 'none'
+        }}
+        data-testid="watermark-image"
+      />
+
       {/* CISW Logo - Top Right Corner */}
-      <div className="absolute top-8 right-8">
+      <div className="absolute top-8 right-8 z-10">
         <img 
           src={ciswLogo} 
           alt="CISW Logo"
@@ -201,7 +215,7 @@ export function CheckInDisplay() {
                       <div 
                         className="w-24 h-24 rounded-full flex items-center justify-center"
                         style={{
-                          backgroundColor: brandingColor,
+                          backgroundColor: '#10b981',
                         }}
                       >
                         <svg 
@@ -252,7 +266,7 @@ export function CheckInDisplay() {
                 <div 
                   className="w-32 h-32 rounded-full flex items-center justify-center"
                   style={{
-                    backgroundColor: brandingColor,
+                    backgroundColor: '#10b981',
                   }}
                 >
                   <svg 
@@ -334,12 +348,12 @@ export function CheckInDisplay() {
               <div 
                 className="w-32 h-32 rounded-full flex items-center justify-center"
                 style={{
-                  backgroundColor: isDarkMode ? '#222222' : '#EEEEEE',
+                  backgroundColor: '#10b981',
+                  opacity: 0.6
                 }}
               >
                 <svg 
-                  className="w-16 h-16"
-                  style={{ color: isDarkMode ? '#666666' : '#999999' }}
+                  className="w-16 h-16 text-white"
                   fill="none" 
                   stroke="currentColor" 
                   viewBox="0 0 24 24"
