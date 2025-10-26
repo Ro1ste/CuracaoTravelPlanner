@@ -124,6 +124,34 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Polling system tables
+export const subjects = pgTable("subjects", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  shortCode: varchar("short_code").unique().notNull(),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  currentPollIndex: integer("current_poll_index").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const polls = pgTable("polls", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  subjectId: varchar("subject_id").references(() => subjects.id).notNull(),
+  question: text("question").notNull(),
+  options: jsonb("options").notNull(), // Array of {id: string, text: string}
+  orderIndex: integer("order_index").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const votes = pgTable("votes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  pollId: varchar("poll_id").references(() => polls.id).notNull(),
+  optionId: varchar("option_id").notNull(),
+  sessionId: varchar("session_id").notNull(), // To prevent duplicate votes
+  votedAt: timestamp("voted_at").defaultNow(),
+});
+
 // Insert schemas using drizzle-zod
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
@@ -254,3 +282,37 @@ export type EventRegistration = typeof eventRegistrations.$inferSelect;
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type PasswordResetRequest = z.infer<typeof passwordResetRequestSchema>;
 export type PasswordResetConfirm = z.infer<typeof passwordResetConfirmSchema>;
+
+// Polling system schemas
+export const insertSubjectSchema = createInsertSchema(subjects).pick({
+  title: true,
+  description: true,
+});
+
+export const insertPollSchema = createInsertSchema(polls).pick({
+  subjectId: true,
+  question: true,
+  options: true,
+  orderIndex: true,
+}).extend({
+  options: z.array(z.object({
+    id: z.string(),
+    text: z.string().min(1, "Option text is required"),
+  })).min(2, "At least 2 options required").max(10, "Maximum 10 options allowed"),
+});
+
+export const insertVoteSchema = createInsertSchema(votes).pick({
+  pollId: true,
+  optionId: true,
+  sessionId: true,
+});
+
+// Polling type definitions
+export type Subject = typeof subjects.$inferSelect;
+export type InsertSubject = z.infer<typeof insertSubjectSchema>;
+
+export type Poll = typeof polls.$inferSelect;
+export type InsertPoll = z.infer<typeof insertPollSchema>;
+
+export type Vote = typeof votes.$inferSelect;
+export type InsertVote = z.infer<typeof insertVoteSchema>;

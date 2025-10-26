@@ -12,13 +12,22 @@ import {
   type EventRegistration,
   type InsertEventRegistration,
   type PasswordResetToken,
+  type Subject,
+  type InsertSubject,
+  type Poll,
+  type InsertPoll,
+  type Vote,
+  type InsertVote,
   users,
   companies,
   tasks,
   taskProofs,
   events,
   eventRegistrations,
-  passwordResetTokens
+  passwordResetTokens,
+  subjects,
+  polls,
+  votes
 } from "@shared/schema";
 import { eq, desc, sql } from "drizzle-orm";
 
@@ -79,6 +88,25 @@ export interface IStorage {
   getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
   markPasswordResetTokenAsUsed(id: string): Promise<void>;
   updateUserPasswordForReset(userId: string, hashedPassword: string): Promise<void>;
+  
+  // Polling system operations
+  getAllSubjects(): Promise<Subject[]>;
+  getSubjectById(id: string): Promise<Subject | undefined>;
+  getSubjectByShortCode(shortCode: string): Promise<Subject | undefined>;
+  createSubject(subject: InsertSubject & { shortCode?: string }): Promise<Subject>;
+  updateSubject(id: string, updates: Partial<InsertSubject & { currentPollIndex?: number; isActive?: boolean }>): Promise<Subject | undefined>;
+  deleteSubject(id: string): Promise<void>;
+  
+  getPollsBySubject(subjectId: string): Promise<Poll[]>;
+  getPollById(id: string): Promise<Poll | undefined>;
+  createPoll(poll: InsertPoll): Promise<Poll>;
+  updatePoll(id: string, updates: Partial<InsertPoll>): Promise<Poll | undefined>;
+  deletePoll(id: string): Promise<void>;
+  
+  getVotesByPoll(pollId: string): Promise<Vote[]>;
+  createVote(vote: InsertVote): Promise<Vote>;
+  hasVoted(pollId: string, sessionId: string): Promise<boolean>;
+  getVoteCounts(pollId: string): Promise<Record<string, number>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -520,6 +548,111 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date()
       })
       .where(eq(users.id, userId));
+  }
+
+  // Polling system operations
+  async getAllSubjects(): Promise<Subject[]> {
+    const db = await this.getDb();
+    return await db.select().from(subjects).orderBy(desc(subjects.createdAt));
+  }
+
+  async getSubjectById(id: string): Promise<Subject | undefined> {
+    const db = await this.getDb();
+    const [subject] = await db.select().from(subjects).where(eq(subjects.id, id));
+    return subject;
+  }
+
+  async getSubjectByShortCode(shortCode: string): Promise<Subject | undefined> {
+    const db = await this.getDb();
+    const [subject] = await db.select().from(subjects).where(eq(subjects.shortCode, shortCode));
+    return subject;
+  }
+
+  async createSubject(subjectData: InsertSubject & { shortCode?: string }): Promise<Subject> {
+    const db = await this.getDb();
+    const { nanoid } = await import('nanoid');
+    const shortCode = subjectData.shortCode || nanoid(8);
+    const [subject] = await db.insert(subjects).values({
+      ...subjectData,
+      shortCode,
+    }).returning();
+    return subject;
+  }
+
+  async updateSubject(id: string, updates: Partial<InsertSubject & { currentPollIndex?: number; isActive?: boolean }>): Promise<Subject | undefined> {
+    const db = await this.getDb();
+    const [subject] = await db
+      .update(subjects)
+      .set(updates)
+      .where(eq(subjects.id, id))
+      .returning();
+    return subject;
+  }
+
+  async deleteSubject(id: string): Promise<void> {
+    const db = await this.getDb();
+    await db.delete(subjects).where(eq(subjects.id, id));
+  }
+
+  async getPollsBySubject(subjectId: string): Promise<Poll[]> {
+    const db = await this.getDb();
+    return await db.select().from(polls).where(eq(polls.subjectId, subjectId)).orderBy(polls.orderIndex);
+  }
+
+  async getPollById(id: string): Promise<Poll | undefined> {
+    const db = await this.getDb();
+    const [poll] = await db.select().from(polls).where(eq(polls.id, id));
+    return poll;
+  }
+
+  async createPoll(pollData: InsertPoll): Promise<Poll> {
+    const db = await this.getDb();
+    const [poll] = await db.insert(polls).values(pollData).returning();
+    return poll;
+  }
+
+  async updatePoll(id: string, updates: Partial<InsertPoll>): Promise<Poll | undefined> {
+    const db = await this.getDb();
+    const [poll] = await db
+      .update(polls)
+      .set(updates)
+      .where(eq(polls.id, id))
+      .returning();
+    return poll;
+  }
+
+  async deletePoll(id: string): Promise<void> {
+    const db = await this.getDb();
+    await db.delete(polls).where(eq(polls.id, id));
+  }
+
+  async getVotesByPoll(pollId: string): Promise<Vote[]> {
+    const db = await this.getDb();
+    return await db.select().from(votes).where(eq(votes.pollId, pollId));
+  }
+
+  async createVote(voteData: InsertVote): Promise<Vote> {
+    const db = await this.getDb();
+    const [vote] = await db.insert(votes).values(voteData).returning();
+    return vote;
+  }
+
+  async hasVoted(pollId: string, sessionId: string): Promise<boolean> {
+    const db = await this.getDb();
+    const result = await db.select().from(votes)
+      .where(sql`${votes.pollId} = ${pollId} AND ${votes.sessionId} = ${sessionId}`)
+      .limit(1);
+    return result.length > 0;
+  }
+
+  async getVoteCounts(pollId: string): Promise<Record<string, number>> {
+    const db = await this.getDb();
+    const allVotes = await db.select().from(votes).where(eq(votes.pollId, pollId));
+    const counts: Record<string, number> = {};
+    for (const vote of allVotes) {
+      counts[vote.optionId] = (counts[vote.optionId] || 0) + 1;
+    }
+    return counts;
   }
 }
 
@@ -1014,6 +1147,67 @@ export class MemStorage implements IStorage {
       user.updatedAt = new Date();
       this.users.set(userId, user);
     }
+  }
+
+  // Polling system operations - MemStorage stubs (not fully implemented for in-memory)
+  async getAllSubjects(): Promise<Subject[]> {
+    return [];
+  }
+
+  async getSubjectById(id: string): Promise<Subject | undefined> {
+    return undefined;
+  }
+
+  async getSubjectByShortCode(shortCode: string): Promise<Subject | undefined> {
+    return undefined;
+  }
+
+  async createSubject(subjectData: InsertSubject & { shortCode?: string }): Promise<Subject> {
+    throw new Error("Polling system not implemented in MemStorage. Use DatabaseStorage.");
+  }
+
+  async updateSubject(id: string, updates: Partial<InsertSubject & { currentPollIndex?: number; isActive?: boolean }>): Promise<Subject | undefined> {
+    return undefined;
+  }
+
+  async deleteSubject(id: string): Promise<void> {
+    // No-op
+  }
+
+  async getPollsBySubject(subjectId: string): Promise<Poll[]> {
+    return [];
+  }
+
+  async getPollById(id: string): Promise<Poll | undefined> {
+    return undefined;
+  }
+
+  async createPoll(pollData: InsertPoll): Promise<Poll> {
+    throw new Error("Polling system not implemented in MemStorage. Use DatabaseStorage.");
+  }
+
+  async updatePoll(id: string, updates: Partial<InsertPoll>): Promise<Poll | undefined> {
+    return undefined;
+  }
+
+  async deletePoll(id: string): Promise<void> {
+    // No-op
+  }
+
+  async getVotesByPoll(pollId: string): Promise<Vote[]> {
+    return [];
+  }
+
+  async createVote(voteData: InsertVote): Promise<Vote> {
+    throw new Error("Polling system not implemented in MemStorage. Use DatabaseStorage.");
+  }
+
+  async hasVoted(pollId: string, sessionId: string): Promise<boolean> {
+    return false;
+  }
+
+  async getVoteCounts(pollId: string): Promise<Record<string, number>> {
+    return {};
   }
 }
 
