@@ -24,7 +24,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertSubjectSchema, insertPollSchema, type Subject, type Poll, type InsertPoll } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, QrCode, ExternalLink } from "lucide-react";
+import { Plus, Trash2, QrCode, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 
@@ -149,6 +149,39 @@ export default function PollsManagement() {
       toast({
         title: "Success",
         description: "Poll deleted successfully",
+      });
+    },
+  });
+
+  const advancePollMutation = useMutation({
+    mutationFn: async ({ subjectId, direction }: { subjectId: string; direction: 'next' | 'prev' }) => {
+      const subject = subjects.find(s => s.id === subjectId);
+      if (!subject) return;
+      
+      const subjectPolls = polls.filter(p => p.subjectId === subjectId);
+      const currentIndex = subject.currentPollIndex || 0;
+      let newIndex = currentIndex;
+      
+      if (direction === 'next' && currentIndex < subjectPolls.length - 1) {
+        newIndex = currentIndex + 1;
+      } else if (direction === 'prev' && currentIndex > 0) {
+        newIndex = currentIndex - 1;
+      }
+      
+      return await apiRequest("PATCH", `/api/subjects/${subjectId}`, { currentPollIndex: newIndex });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/subjects"] });
+      toast({
+        title: "Success",
+        description: "Poll navigation successful",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to navigate poll",
+        variant: "destructive",
       });
     },
   });
@@ -305,6 +338,34 @@ export default function PollsManagement() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
+              {polls.filter((p) => p.subjectId === subject.id).length > 0 && (
+                <div className="flex items-center gap-2 p-3 bg-muted rounded">
+                  <span className="text-sm font-medium flex-1">
+                    Current Poll: {(subject.currentPollIndex || 0) + 1} of {polls.filter((p) => p.subjectId === subject.id).length}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => advancePollMutation.mutate({ subjectId: subject.id, direction: 'prev' })}
+                    disabled={(subject.currentPollIndex || 0) === 0 || advancePollMutation.isPending}
+                    data-testid={`button-prev-poll-${subject.id}`}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Prev
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => advancePollMutation.mutate({ subjectId: subject.id, direction: 'next' })}
+                    disabled={(subject.currentPollIndex || 0) >= polls.filter((p) => p.subjectId === subject.id).length - 1 || advancePollMutation.isPending}
+                    data-testid={`button-next-poll-${subject.id}`}
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+              
               <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"

@@ -5,8 +5,10 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { type Subject, type Poll } from "@shared/schema";
-import { CheckCircle2, Circle } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { nanoid } from "nanoid";
 
 export default function VotingPage() {
@@ -14,6 +16,7 @@ export default function VotingPage() {
   const shortCode = params?.shortCode || "";
   const [sessionId, setSessionId] = useState<string>("");
   const [votedPolls, setVotedPolls] = useState<Set<string>>(new Set());
+  const [selectedOption, setSelectedOption] = useState<string>("");
 
   useEffect(() => {
     let id = localStorage.getItem("poll_session_id");
@@ -50,7 +53,7 @@ export default function VotingPage() {
   const voteMutation = useMutation({
     mutationFn: async (optionId: string) => {
       if (!currentPoll || !sessionId) return;
-      return await apiRequest("/api/votes", "POST", {
+      return await apiRequest("POST", "/api/votes", {
         pollId: currentPoll.id,
         sessionId,
         optionId,
@@ -63,9 +66,16 @@ export default function VotingPage() {
         setVotedPolls(newVoted);
         localStorage.setItem(`voted_${shortCode}`, JSON.stringify(Array.from(newVoted)));
         queryClient.invalidateQueries({ queryKey: ["/api/polls", currentPoll.id, "votes"] });
+        setSelectedOption("");
       }
     },
   });
+
+  const handleSubmitVote = () => {
+    if (selectedOption) {
+      voteMutation.mutate(selectedOption);
+    }
+  };
 
   const hasVoted = currentPoll ? votedPolls.has(currentPoll.id) : false;
 
@@ -117,22 +127,37 @@ export default function VotingPage() {
           <CardHeader>
             <CardTitle className="text-2xl">{currentPoll.question}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             {!hasVoted ? (
-              <div className="space-y-3">
-                {options.map((option) => (
-                  <Button
-                    key={option.id}
-                    variant="outline"
-                    className="w-full h-auto py-4 text-lg justify-start border-2 border-black hover:bg-black hover:text-white transition-colors"
-                    onClick={() => voteMutation.mutate(option.id)}
-                    disabled={voteMutation.isPending}
-                    data-testid={`button-vote-${option.text}`}
-                  >
-                    <Circle className="w-5 h-5 mr-3" />
-                    {option.text}
-                  </Button>
-                ))}
+              <div className="space-y-6">
+                <RadioGroup value={selectedOption} onValueChange={setSelectedOption}>
+                  <div className="space-y-3">
+                    {options.map((option) => (
+                      <div
+                        key={option.id}
+                        className="flex items-center space-x-3 border-2 border-black rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                        data-testid={`option-${option.text}`}
+                      >
+                        <RadioGroupItem value={option.id} id={option.id} />
+                        <Label
+                          htmlFor={option.id}
+                          className="text-lg font-medium cursor-pointer flex-1"
+                        >
+                          {option.text}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </RadioGroup>
+
+                <Button
+                  onClick={handleSubmitVote}
+                  disabled={!selectedOption || voteMutation.isPending}
+                  className="w-full h-12 text-lg font-bold bg-black text-white hover:bg-gray-800"
+                  data-testid="button-submit-vote"
+                >
+                  {voteMutation.isPending ? "Submitting..." : "Submit Vote"}
+                </Button>
               </div>
             ) : (
               <div className="space-y-4">

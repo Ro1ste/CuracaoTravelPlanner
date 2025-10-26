@@ -166,47 +166,71 @@ export default function PollDisplay() {
   const totalVotes = chartData.reduce((sum, d) => sum + d.votes, 0);
 
   return (
-    <div className="min-h-screen bg-white text-black p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        <div className="text-center space-y-4 border-b-4 border-black pb-6">
-          <div className="flex justify-center">
-            <div className="text-4xl font-black uppercase tracking-wider">CISW</div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 text-black">
+      <div className="max-w-[1920px] mx-auto">
+        {/* Modern Header */}
+        <header className="bg-black text-white py-8 px-12 shadow-2xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <div className="bg-white text-black px-8 py-4 rounded-lg shadow-lg">
+                <h1 className="text-3xl font-black uppercase tracking-widest">CISW</h1>
+                <p className="text-xs font-medium text-gray-600 mt-1">Curaçao International Sports Week</p>
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold">{subject.title}</h2>
+                <p className="text-gray-300 text-sm mt-1">{subject.description}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-400 uppercase tracking-wide">Live Poll</p>
+              <p className="text-2xl font-bold">
+                Question {(subject.currentPollIndex || 0) + 1} / {polls.length}
+              </p>
+            </div>
           </div>
-          <h1 className="text-5xl font-bold uppercase">{subject.title}</h1>
-          <p className="text-xl text-gray-600">
-            Live Poll Results - Question {(subject.currentPollIndex || 0) + 1} of {polls.length}
-          </p>
-        </div>
+        </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="border-4 border-black rounded-lg p-6 bg-gray-50">
-              <h2 className="text-3xl font-bold mb-4">{currentPoll.question}</h2>
-              <p className="text-lg text-gray-600">Total Votes: {totalVotes}</p>
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 p-8">
+          {/* Left Column - Chart & AI Commentary */}
+          <div className="xl:col-span-8 space-y-8">
+            {/* Question Card */}
+            <div className="bg-white rounded-2xl shadow-2xl p-8 border-l-8 border-black">
+              <h2 className="text-4xl font-bold mb-4 text-gray-900">{currentPoll.question}</h2>
+              <div className="flex items-center gap-4">
+                <span className="px-4 py-2 bg-black text-white rounded-full text-sm font-bold">
+                  {totalVotes} {totalVotes === 1 ? 'Vote' : 'Votes'}
+                </span>
+                <span className="text-gray-500 text-sm">Live Results</span>
+              </div>
             </div>
 
-            <div className="border-4 border-black rounded-lg p-6 bg-white">
-              <h3 className="text-2xl font-bold mb-4">Results</h3>
-              <ResponsiveContainer width="100%" height={400}>
+            {/* Chart Card */}
+            <div className="bg-white rounded-2xl shadow-2xl p-8">
+              <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                <div className="w-2 h-8 bg-black rounded"></div>
+                Live Results
+              </h3>
+              <ResponsiveContainer width="100%" height={450}>
                 <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis
                     dataKey="name"
-                    tick={{ fill: "#000000", fontSize: 14 }}
-                    angle={-15}
-                    textAnchor="end"
-                    height={80}
+                    tick={{ fill: "#374151", fontSize: 16, fontWeight: 500 }}
+                    angle={0}
+                    textAnchor="middle"
+                    height={60}
                   />
-                  <YAxis tick={{ fill: "#000000", fontSize: 14 }} />
+                  <YAxis tick={{ fill: "#374151", fontSize: 14 }} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: "#ffffff",
                       border: "2px solid #000000",
-                      borderRadius: "4px",
+                      borderRadius: "12px",
+                      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                     }}
                   />
-                  <Legend />
-                  <Bar dataKey="votes" fill="#000000">
+                  <Bar dataKey="votes" fill="#000000" radius={[8, 8, 0, 0]}>
                     {chartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
@@ -215,49 +239,57 @@ export default function PollDisplay() {
               </ResponsiveContainer>
             </div>
 
+            {/* AI Commentary */}
             {aiCommentary && (
-              <div className="border-4 border-black rounded-lg p-6 bg-gradient-to-r from-gray-50 to-gray-100">
-                <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-                  <span className="text-2xl">💬</span>
-                  AI Commentary
+              <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl shadow-2xl p-8 text-white">
+                <h3 className="text-2xl font-bold mb-4 flex items-center gap-3">
+                  <span className="text-3xl">🤖</span>
+                  AI Analysis
                 </h3>
-                <p className="text-lg italic leading-relaxed">{aiCommentary}</p>
+                <p className="text-lg leading-relaxed text-gray-200">{aiCommentary}</p>
               </div>
             )}
           </div>
 
-          <div className="space-y-6">
-            <div className="border-4 border-black rounded-lg p-6 bg-white text-center">
-              <h3 className="text-2xl font-bold mb-4">Vote Now!</h3>
+          {/* Right Column - QR Code & Breakdown */}
+          <div className="xl:col-span-4 space-y-8">
+            {/* QR Code Card */}
+            <div className="bg-white rounded-2xl shadow-2xl p-8 text-center sticky top-8">
+              <div className="bg-black text-white py-3 px-6 rounded-xl mb-6">
+                <h3 className="text-xl font-bold">Scan to Vote</h3>
+              </div>
               {qrCodeUrl && (
-                <img
-                  src={qrCodeUrl}
-                  alt="Voting QR Code"
-                  className="mx-auto mb-4 border-2 border-black"
-                  data-testid="img-qr-code"
-                />
+                <div className="p-4 bg-gray-50 rounded-xl inline-block">
+                  <img
+                    src={qrCodeUrl}
+                    alt="Voting QR Code"
+                    className="mx-auto w-64 h-64"
+                    data-testid="img-qr-code"
+                  />
+                </div>
               )}
-              <p className="text-sm text-gray-600 break-all">{votingUrl}</p>
+              <p className="text-xs text-gray-500 mt-4 font-mono break-all px-2">{votingUrl}</p>
             </div>
 
-            <div className="border-4 border-black rounded-lg p-6 bg-black text-white">
-              <h3 className="text-xl font-bold mb-4">Breakdown</h3>
-              <div className="space-y-3">
+            {/* Vote Breakdown Card */}
+            <div className="bg-gradient-to-br from-black to-gray-900 rounded-2xl shadow-2xl p-8 text-white">
+              <h3 className="text-2xl font-bold mb-6">Vote Breakdown</h3>
+              <div className="space-y-5">
                 {chartData.map((data, index) => {
                   const percentage = totalVotes > 0 ? ((data.votes / totalVotes) * 100).toFixed(1) : "0.0";
                   return (
-                    <div key={index} className="space-y-1">
+                    <div key={index} className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="font-medium">{data.name}</span>
-                        <span className="text-lg font-bold">{percentage}%</span>
+                        <span className="font-semibold text-lg">{data.name}</span>
+                        <span className="text-2xl font-bold">{percentage}%</span>
                       </div>
-                      <div className="bg-gray-700 h-2 rounded-full overflow-hidden">
+                      <div className="bg-gray-700 h-3 rounded-full overflow-hidden">
                         <div
-                          className="bg-white h-full transition-all duration-500"
+                          className="bg-white h-full transition-all duration-700 ease-out rounded-full"
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
-                      <p className="text-sm text-gray-400">{data.votes} votes</p>
+                      <p className="text-sm text-gray-400">{data.votes} {data.votes === 1 ? 'vote' : 'votes'}</p>
                     </div>
                   );
                 })}
