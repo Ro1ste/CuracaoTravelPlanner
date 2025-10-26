@@ -17,6 +17,7 @@ export function CheckInDisplay() {
   const { eventId } = useParams();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [fadeIn, setFadeIn] = useState(true);
+  const [groupedAttendees, setGroupedAttendees] = useState<CheckInDisplay[]>([]);
   const cycleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const fadeTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -44,6 +45,27 @@ export function CheckInDisplay() {
   const brandingColor = event?.brandingColor || '#ff6600';
   const isLightColor = getBrightness(brandingColor) > 128;
   const isDarkMode = !isLightColor;
+
+  // Group attendees who checked in together (within 30 seconds of each other)
+  useEffect(() => {
+    if (recentCheckIns.length === 0) {
+      setGroupedAttendees([]);
+      return;
+    }
+
+    // Get the most recent check-in
+    const mostRecent = recentCheckIns[0];
+    const mostRecentTime = new Date(mostRecent.checkedInAt).getTime();
+    
+    // Find all attendees who checked in within 30 seconds of the most recent
+    const group = recentCheckIns.filter(attendee => {
+      const checkInTime = new Date(attendee.checkedInAt).getTime();
+      return (mostRecentTime - checkInTime) <= 30000; // 30 seconds
+    });
+    
+    // Limit to 4 attendees max for split screen
+    setGroupedAttendees(group.slice(0, 4));
+  }, [recentCheckIns]);
 
   // Continuous cycling through attendees every 150 seconds
   useEffect(() => {
@@ -108,6 +130,7 @@ export function CheckInDisplay() {
   }, [recentCheckIns.length, currentIndex]);
 
   const currentCheckIn = recentCheckIns[currentIndex];
+  const isGroupCheckIn = groupedAttendees.length > 1;
 
   return (
     <div 
@@ -132,91 +155,178 @@ export function CheckInDisplay() {
       </div>
 
       {/* Main Content */}
-      <div className="w-full max-w-5xl">
+      <div className="w-full max-w-7xl">
         {recentCheckIns.length > 0 && currentCheckIn ? (
-          <div 
-            className={`text-center transition-opacity duration-500 ${fadeIn ? 'opacity-100' : 'opacity-0'}`}
-            data-testid="attendee-display"
-          >
-            {/* Welcome Icon */}
-            <div className="flex justify-center mb-12">
-              <div 
-                className="w-32 h-32 rounded-full flex items-center justify-center"
-                style={{
-                  backgroundColor: brandingColor,
-                }}
-              >
-                <svg 
-                  className="w-16 h-16 text-white" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" 
-                  />
-                </svg>
-              </div>
-            </div>
-
-            {/* Attendee Name */}
-            <h1 
-              className="text-8xl font-bold mb-8"
-              style={{ color: isDarkMode ? '#FFFFFF' : '#000000' }}
-              data-testid="attendee-name"
+          isGroupCheckIn ? (
+            // Group Check-In Display (Split Screen)
+            <div 
+              className={`transition-opacity duration-500 ${fadeIn ? 'opacity-100' : 'opacity-0'}`}
+              data-testid="group-attendee-display"
             >
-              {currentCheckIn.firstName} {currentCheckIn.lastName}
-            </h1>
+              {/* Event Title Header */}
+              <div className="text-center mb-12">
+                <p 
+                  className="text-4xl font-semibold mb-3"
+                  style={{ color: isDarkMode ? '#CCCCCC' : '#333333' }}
+                >
+                  Welcome to
+                </p>
+                <p 
+                  className="text-6xl font-bold mb-8"
+                  style={{ color: brandingColor }}
+                  data-testid="event-title-group"
+                >
+                  {event?.title || 'CISW 2025 Conference'}
+                </p>
+              </div>
 
-            {/* Welcome Message */}
-            <div className="space-y-4 mb-8">
-              <p 
-                className="text-4xl font-semibold"
-                style={{ color: isDarkMode ? '#CCCCCC' : '#333333' }}
-              >
-                Welcome to
-              </p>
-              <p 
-                className="text-5xl font-bold"
-                style={{ color: brandingColor }}
-                data-testid="event-title"
-              >
-                {event?.title || 'CISW 2025 Conference'}
-              </p>
-            </div>
-
-            {/* Company Name */}
-            {currentCheckIn.companyName && (
-              <p 
-                className="text-3xl font-medium"
-                style={{ color: isDarkMode ? '#999999' : '#666666' }}
-                data-testid="company-name"
-              >
-                {currentCheckIn.companyName}
-              </p>
-            )}
-
-            {/* Progress Indicator */}
-            {recentCheckIns.length > 1 && (
-              <div className="mt-16 flex justify-center gap-2">
-                {recentCheckIns.map((_, idx) => (
-                  <div
-                    key={idx}
-                    className="w-3 h-3 rounded-full transition-all duration-300"
+              {/* Grid of Attendees */}
+              <div className={`grid gap-8 ${
+                groupedAttendees.length === 2 ? 'grid-cols-2' : 
+                groupedAttendees.length === 3 ? 'grid-cols-3' : 
+                'grid-cols-2'
+              }`}>
+                {groupedAttendees.map((attendee, idx) => (
+                  <div 
+                    key={attendee.id}
+                    className="text-center p-6 rounded-2xl"
                     style={{
-                      backgroundColor: idx === currentIndex 
-                        ? brandingColor 
-                        : isDarkMode ? '#333333' : '#CCCCCC'
+                      backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+                      border: `2px solid ${brandingColor}40`
                     }}
-                    data-testid={`progress-dot-${idx}`}
-                  />
+                    data-testid={`group-attendee-${idx}`}
+                  >
+                    {/* Welcome Icon */}
+                    <div className="flex justify-center mb-6">
+                      <div 
+                        className="w-24 h-24 rounded-full flex items-center justify-center"
+                        style={{
+                          backgroundColor: brandingColor,
+                        }}
+                      >
+                        <svg 
+                          className="w-12 h-12 text-white" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            strokeWidth={2} 
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" 
+                          />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {/* Attendee Name */}
+                    <h2 
+                      className="text-5xl font-bold mb-4"
+                      style={{ color: isDarkMode ? '#FFFFFF' : '#000000' }}
+                    >
+                      {attendee.firstName} {attendee.lastName}
+                    </h2>
+
+                    {/* Company Name */}
+                    {attendee.companyName && (
+                      <p 
+                        className="text-2xl font-medium"
+                        style={{ color: isDarkMode ? '#999999' : '#666666' }}
+                      >
+                        {attendee.companyName}
+                      </p>
+                    )}
+                  </div>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            // Single Attendee Display
+            <div 
+              className={`text-center transition-opacity duration-500 ${fadeIn ? 'opacity-100' : 'opacity-0'}`}
+              data-testid="attendee-display"
+            >
+              {/* Welcome Icon */}
+              <div className="flex justify-center mb-12">
+                <div 
+                  className="w-32 h-32 rounded-full flex items-center justify-center"
+                  style={{
+                    backgroundColor: brandingColor,
+                  }}
+                >
+                  <svg 
+                    className="w-16 h-16 text-white" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" 
+                    />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Attendee Name */}
+              <h1 
+                className="text-8xl font-bold mb-8"
+                style={{ color: isDarkMode ? '#FFFFFF' : '#000000' }}
+                data-testid="attendee-name"
+              >
+                {currentCheckIn.firstName} {currentCheckIn.lastName}
+              </h1>
+
+              {/* Welcome Message */}
+              <div className="space-y-4 mb-8">
+                <p 
+                  className="text-4xl font-semibold"
+                  style={{ color: isDarkMode ? '#CCCCCC' : '#333333' }}
+                >
+                  Welcome to
+                </p>
+                <p 
+                  className="text-5xl font-bold"
+                  style={{ color: brandingColor }}
+                  data-testid="event-title"
+                >
+                  {event?.title || 'CISW 2025 Conference'}
+                </p>
+              </div>
+
+              {/* Company Name */}
+              {currentCheckIn.companyName && (
+                <p 
+                  className="text-3xl font-medium"
+                  style={{ color: isDarkMode ? '#999999' : '#666666' }}
+                  data-testid="company-name"
+                >
+                  {currentCheckIn.companyName}
+                </p>
+              )}
+
+              {/* Progress Indicator */}
+              {recentCheckIns.length > 1 && (
+                <div className="mt-16 flex justify-center gap-2">
+                  {recentCheckIns.map((_, idx) => (
+                    <div
+                      key={idx}
+                      className="w-3 h-3 rounded-full transition-all duration-300"
+                      style={{
+                        backgroundColor: idx === currentIndex 
+                          ? brandingColor 
+                          : isDarkMode ? '#333333' : '#CCCCCC'
+                      }}
+                      data-testid={`progress-dot-${idx}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )
         ) : (
           <div className="text-center" data-testid="waiting-display">
             {/* Waiting Icon */}
