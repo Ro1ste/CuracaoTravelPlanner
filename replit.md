@@ -120,6 +120,11 @@ The platform is built with a Fullstack JavaScript stack, utilizing React with Ty
   - Backend: Timezone-agnostic parsing using explicit UTC-4 offset (ISO 8601 format)
   - Frontend: Converts UTC to Curacao time for editing, maintains consistency
   - Validation: Added try-catch blocks and date validation for both create and update operations
+- ✅ Added location field to events - attendees can now see event location on registration page
+  - Schema: Added optional location field (text) to events table
+  - Admin: Location input available in both create and edit event forms
+  - Display: Location shown with MapPin icon below date/time on registration page
+  - Styling: Location icon colored with event branding color for consistency
 
 **Admin Login Configuration (October 1, 2025):**
 - ✅ Created production admin account: admin@curacaointernationalsportsweek.com (password: Admin2024!)
