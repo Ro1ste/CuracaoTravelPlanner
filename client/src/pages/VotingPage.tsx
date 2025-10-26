@@ -8,8 +8,9 @@ import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { type Subject, type Poll } from "@shared/schema";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, ChevronRight, Lightbulb } from "lucide-react";
 import { nanoid } from "nanoid";
+import ciswLogo from "@assets/WhatsApp Image 2025-10-26 at 17.19.45_01be175f_1761513642893.jpg";
 
 export default function VotingPage() {
   const [, params] = useRoute("/vote/:shortCode");
@@ -17,6 +18,7 @@ export default function VotingPage() {
   const [sessionId, setSessionId] = useState<string>("");
   const [votedPolls, setVotedPolls] = useState<Set<string>>(new Set());
   const [selectedOption, setSelectedOption] = useState<string>("");
+  const [aiInsight, setAiInsight] = useState<string>("");
 
   useEffect(() => {
     let id = localStorage.getItem("poll_session_id");
@@ -71,6 +73,40 @@ export default function VotingPage() {
     },
   });
 
+  const advancePollMutation = useMutation({
+    mutationFn: async () => {
+      if (!subject) return;
+      const currentIndex = subject.currentPollIndex || 0;
+      if (currentIndex < polls.length - 1) {
+        return await apiRequest("PATCH", `/api/subjects/${subject.id}`, {
+          currentPollIndex: currentIndex + 1,
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/subjects/code", shortCode] });
+      setSelectedOption("");
+    },
+  });
+
+  useEffect(() => {
+    if (currentPoll) {
+      setAiInsight("");
+      const fetchAiInsight = async () => {
+        try {
+          const response = await fetch(`/api/polls/${currentPoll.id}/question-insight`);
+          if (response.ok) {
+            const data = await response.json();
+            setAiInsight(data.insight);
+          }
+        } catch (error) {
+          console.error("Failed to fetch AI insight:", error);
+        }
+      };
+      fetchAiInsight();
+    }
+  }, [currentPoll?.id]);
+
   const handleSubmitVote = () => {
     if (selectedOption) {
       voteMutation.mutate(selectedOption);
@@ -106,24 +142,52 @@ export default function VotingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-black p-4 md:p-8">
-      <div className="max-w-3xl mx-auto space-y-6">
-        <div className="text-center space-y-4 border-b-4 border-black pb-6">
-          <div className="flex justify-center">
-            <div className="text-2xl font-black uppercase tracking-wider">CISW</div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="max-w-4xl mx-auto">
+        {/* Header with Logo */}
+        <header className="bg-white shadow-lg border-b-4 border-black p-6 mb-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <img 
+                src={ciswLogo} 
+                alt="Curaçao International Sports Week" 
+                className="h-16 w-auto object-contain"
+                data-testid="img-cisw-logo"
+              />
+              <div className="border-l-2 border-gray-300 pl-6">
+                <h1 className="text-2xl font-bold text-black">{subject.title}</h1>
+                {subject.description && (
+                  <p className="text-sm text-gray-600 mt-1">{subject.description}</p>
+                )}
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Poll Progress</p>
+              <p className="text-xl font-bold text-black">
+                {(subject.currentPollIndex || 0) + 1} / {polls.length}
+              </p>
+            </div>
           </div>
-          <h1 className="text-4xl font-bold uppercase">{subject.title}</h1>
-          {subject.description && (
-            <p className="text-lg text-gray-600">{subject.description}</p>
-          )}
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-            <span>
-              Question {(subject.currentPollIndex || 0) + 1} of {polls.length}
-            </span>
-          </div>
-        </div>
+        </header>
 
-        <Card data-testid="card-current-poll">
+        <div className="px-4 md:px-8 pb-8 space-y-6">
+          {/* AI Insight */}
+          {aiInsight && (
+            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-3">
+                  <Lightbulb className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="font-bold text-lg text-blue-900 mb-2">AI Insight</h3>
+                    <p className="text-gray-700 leading-relaxed">{aiInsight}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Poll Question Card */}
+          <Card data-testid="card-current-poll" className="shadow-xl border-2 border-gray-200">
           <CardHeader>
             <CardTitle className="text-2xl">{currentPoll.question}</CardTitle>
           </CardHeader>
@@ -188,10 +252,24 @@ export default function VotingPage() {
                 <p className="text-center text-sm text-gray-500 mt-4">
                   Total votes: {totalVotes}
                 </p>
+
+                {/* Next Poll Button */}
+                {(subject.currentPollIndex || 0) < polls.length - 1 && (
+                  <Button
+                    onClick={() => advancePollMutation.mutate()}
+                    disabled={advancePollMutation.isPending}
+                    className="w-full h-12 text-lg font-bold bg-black text-white hover:bg-gray-800 mt-4"
+                    data-testid="button-next-poll"
+                  >
+                    {advancePollMutation.isPending ? "Loading..." : "Next Poll"}
+                    <ChevronRight className="w-5 h-5 ml-2" />
+                  </Button>
+                )}
               </div>
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

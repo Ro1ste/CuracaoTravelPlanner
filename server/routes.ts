@@ -1545,6 +1545,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate AI insight about poll question
+  app.get('/api/polls/:pollId/question-insight', async (req, res) => {
+    try {
+      const poll = await storage.getPollById(req.params.pollId);
+      
+      if (!poll) {
+        return res.status(404).json({ message: "Poll not found" });
+      }
+      
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(500).json({ message: "OpenAI API key not configured" });
+      }
+
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a thoughtful analyst providing brief, interesting context or perspective about poll questions. Keep responses to 2-3 sentences maximum. Be informative and engaging, helping voters think about the question from different angles.",
+            },
+            {
+              role: "user",
+              content: `Provide a brief, interesting insight or perspective about this poll question: "${poll.question}"`,
+            },
+          ],
+          max_tokens: 120,
+          temperature: 0.7,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.choices && data.choices[0]?.message?.content) {
+        res.json({ insight: data.choices[0].message.content });
+      } else {
+        res.status(500).json({ message: "Failed to generate insight" });
+      }
+    } catch (error: any) {
+      console.error("Error generating AI insight:", error);
+      res.status(500).json({ message: "Failed to generate insight" });
+    }
+  });
+
   // Generate AI commentary for poll results
   app.post('/api/polls/:pollId/commentary', async (req, res) => {
     try {
