@@ -1426,7 +1426,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Advance poll (Public - for voting page)
   app.post('/api/subjects/:id/advance', async (req, res) => {
     try {
-      const subject = await storage.getSubject(req.params.id);
+      const subject = await storage.getSubjectById(req.params.id);
       if (!subject) {
         return res.status(404).json({ message: "Subject not found" });
       }
