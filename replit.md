@@ -18,7 +18,9 @@ The platform is built with a Fullstack JavaScript stack, using React with TypeSc
 - Supports dark/light mode switching.
 - Implements responsive layouts and interactive components with Framer Motion.
 - Utilizes Shadcn/ui components with Tailwind CSS for a consistent design system.
-- Polling system uses a black & white theme with CISW branding for professionalism.
+- Polling system features modern CISW logo branding with professional black & white design theme.
+- Voting page includes AI-powered question insights to help voters think about questions from different angles.
+- Two-step voting process with radio button selection and submit button for better control.
 
 **Technical Implementations:**
 - **Frontend:** React with TypeScript, Wouter for routing, TanStack Query for state management.
@@ -34,6 +36,10 @@ The platform is built with a Fullstack JavaScript stack, using React with TypeSc
     - File upload capabilities (30MB limit).
     - Role-based routing and protected components.
     - Real-time polling/voting system with subjects, polls, live results display, and AI commentary.
+    - Poll navigation controls (Previous/Next) for admins to control poll progression during live events.
+    - AI-powered question insights on voting page to provide context and perspective for voters.
+    - Next Poll button on voting page for smooth user flow between questions.
+    - Modern poll display with actual CISW logo, professional layout, and live result charts.
     - Dev Mode for quick testing with in-memory storage and sample data, allowing role switching without authentication.
 
 **System Design Choices:**
