@@ -133,8 +133,23 @@ export default function PollDisplay() {
 
   if (!subject || !currentPoll) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <p className="text-2xl">No active poll</p>
+      <div className="min-h-screen flex items-center justify-center bg-white p-8">
+        <div className="text-center space-y-4">
+          <p className="text-2xl font-bold">No active poll</p>
+          <div className="text-left bg-gray-100 p-4 rounded text-sm font-mono space-y-2">
+            <p><strong>Debug Info:</strong></p>
+            <p>Short Code: {shortCode}</p>
+            <p>Subject: {subject ? `Found (${subject.title})` : 'Not found'}</p>
+            <p>Current Poll Index: {subject?.currentPollIndex ?? 'N/A'}</p>
+            <p>Polls Count: {polls.length}</p>
+            {polls.length > 0 && (
+              <div>
+                <p>Poll Order Indexes: {polls.map(p => p.orderIndex).join(', ')}</p>
+              </div>
+            )}
+            <p>Current Poll: {currentPoll ? 'Found' : 'Not found'}</p>
+          </div>
+        </div>
       </div>
     );
   }
