@@ -12,7 +12,10 @@ import {
   companySignupSchema,
   companyLoginSchema,
   passwordResetRequestSchema,
-  passwordResetConfirmSchema
+  passwordResetConfirmSchema,
+  insertSubjectSchema,
+  insertPollSchema,
+  insertVoteSchema
 } from "@shared/schema";
 import { S3ObjectStorageService } from "./s3ObjectStorage";
 import { QRCodeService } from "./qrService";
@@ -1365,6 +1368,181 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating signed URL:", error);
       res.status(500).json({ message: "Failed to generate signed URL" });
+    }
+  });
+
+  // ========== POLLING SYSTEM ROUTES ==========
+  
+  // Get all subjects (Admin only)
+  app.get('/api/subjects', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const subjects = await storage.getAllSubjects();
+      res.json(subjects);
+    } catch (error) {
+      console.error("Error fetching subjects:", error);
+      res.status(500).json({ message: "Failed to fetch subjects" });
+    }
+  });
+
+  // Get subject by ID (Public)
+  app.get('/api/subjects/:id', async (req, res) => {
+    try {
+      const subject = await storage.getSubjectById(req.params.id);
+      if (!subject) {
+        return res.status(404).json({ message: "Subject not found" });
+      }
+      res.json(subject);
+    } catch (error) {
+      console.error("Error fetching subject:", error);
+      res.status(500).json({ message: "Failed to fetch subject" });
+    }
+  });
+
+  // Get subject by short code (Public)
+  app.get('/api/subjects/code/:shortCode', async (req, res) => {
+    try {
+      const subject = await storage.getSubjectByShortCode(req.params.shortCode);
+      if (!subject) {
+        return res.status(404).json({ message: "Subject not found" });
+      }
+      res.json(subject);
+    } catch (error) {
+      console.error("Error fetching subject:", error);
+      res.status(500).json({ message: "Failed to fetch subject" });
+    }
+  });
+
+  // Create subject (Admin only)
+  app.post('/api/subjects', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const data = insertSubjectSchema.parse(req.body);
+      const subject = await storage.createSubject(data);
+      res.status(201).json(subject);
+    } catch (error: any) {
+      console.error("Error creating subject:", error);
+      res.status(400).json({ message: error.message || "Failed to create subject" });
+    }
+  });
+
+  // Update subject (Admin only)
+  app.patch('/api/subjects/:id', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const subject = await storage.updateSubject(req.params.id, req.body);
+      if (!subject) {
+        return res.status(404).json({ message: "Subject not found" });
+      }
+      res.json(subject);
+    } catch (error: any) {
+      console.error("Error updating subject:", error);
+      res.status(400).json({ message: error.message || "Failed to update subject" });
+    }
+  });
+
+  // Delete subject (Admin only)
+  app.delete('/api/subjects/:id', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      await storage.deleteSubject(req.params.id);
+      res.json({ message: "Subject deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting subject:", error);
+      res.status(500).json({ message: "Failed to delete subject" });
+    }
+  });
+
+  // Get polls for a subject (Public)
+  app.get('/api/subjects/:subjectId/polls', async (req, res) => {
+    try {
+      const polls = await storage.getPollsBySubject(req.params.subjectId);
+      res.json(polls);
+    } catch (error) {
+      console.error("Error fetching polls:", error);
+      res.status(500).json({ message: "Failed to fetch polls" });
+    }
+  });
+
+  // Create poll (Admin only)
+  app.post('/api/polls', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const data = insertPollSchema.parse(req.body);
+      const poll = await storage.createPoll(data);
+      res.status(201).json(poll);
+    } catch (error: any) {
+      console.error("Error creating poll:", error);
+      res.status(400).json({ message: error.message || "Failed to create poll" });
+    }
+  });
+
+  // Update poll (Admin only)
+  app.patch('/api/polls/:id', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const poll = await storage.updatePoll(req.params.id, req.body);
+      if (!poll) {
+        return res.status(404).json({ message: "Poll not found" });
+      }
+      res.json(poll);
+    } catch (error: any) {
+      console.error("Error updating poll:", error);
+      res.status(400).json({ message: error.message || "Failed to update poll" });
+    }
+  });
+
+  // Delete poll (Admin only)
+  app.delete('/api/polls/:id', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      await storage.deletePoll(req.params.id);
+      res.json({ message: "Poll deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting poll:", error);
+      res.status(500).json({ message: "Failed to delete poll" });
+    }
+  });
+
+  // Submit vote (Public)
+  app.post('/api/votes', async (req, res) => {
+    try {
+      const data = insertVoteSchema.parse(req.body);
+      
+      // Check if already voted
+      const hasVoted = await storage.hasVoted(data.pollId, data.sessionId);
+      if (hasVoted) {
+        return res.status(400).json({ message: "You have already voted on this poll" });
+      }
+      
+      const vote = await storage.createVote(data);
+      
+      // Get updated vote counts
+      const voteCounts = await storage.getVoteCounts(data.pollId);
+      
+      // Get poll to find subject ID
+      const poll = await storage.getPollById(data.pollId);
+      
+      // Broadcast vote update via WebSocket (imported dynamically to avoid circular deps)
+      if (poll) {
+        try {
+          const { pollWebSocketService } = await import("./websocket");
+          if (pollWebSocketService) {
+            pollWebSocketService.broadcastVoteUpdate(poll.subjectId, data.pollId, voteCounts);
+          }
+        } catch (error) {
+          console.error("Error broadcasting vote update:", error);
+        }
+      }
+      
+      res.status(201).json({ vote, voteCounts });
+    } catch (error: any) {
+      console.error("Error submitting vote:", error);
+      res.status(400).json({ message: error.message || "Failed to submit vote" });
+    }
+  });
+
+  // Get vote counts for a poll (Public)
+  app.get('/api/polls/:pollId/votes', async (req, res) => {
+    try {
+      const voteCounts = await storage.getVoteCounts(req.params.pollId);
+      res.json(voteCounts);
+    } catch (error) {
+      console.error("Error fetching vote counts:", error);
+      res.status(500).json({ message: "Failed to fetch vote counts" });
     }
   });
 
