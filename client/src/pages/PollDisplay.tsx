@@ -5,6 +5,7 @@ import { queryClient } from "@/lib/queryClient";
 import { type Subject, type Poll } from "@shared/schema";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
 import QRCode from "qrcode";
+import ciswLogo from "@assets/WhatsApp Image 2025-10-26 at 17.19.45_01be175f_1761513642893.jpg";
 
 const CHART_COLORS = ["#000000", "#404040", "#737373", "#A3A3A3"];
 
@@ -169,21 +170,25 @@ export default function PollDisplay() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 text-black">
       <div className="max-w-[1920px] mx-auto">
         {/* Modern Header */}
-        <header className="bg-black text-white py-8 px-12 shadow-2xl">
+        <header className="bg-white text-black py-6 px-12 shadow-2xl border-b-4 border-black">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div className="bg-white text-black px-8 py-4 rounded-lg shadow-lg">
-                <h1 className="text-3xl font-black uppercase tracking-widest">CISW</h1>
-                <p className="text-xs font-medium text-gray-600 mt-1">Curaçao International Sports Week</p>
+            <div className="flex items-center gap-8">
+              <div className="bg-white py-2">
+                <img 
+                  src={ciswLogo} 
+                  alt="Curaçao International Sports Week" 
+                  className="h-20 w-auto object-contain"
+                  data-testid="img-cisw-logo"
+                />
               </div>
-              <div>
-                <h2 className="text-3xl font-bold">{subject.title}</h2>
-                <p className="text-gray-300 text-sm mt-1">{subject.description}</p>
+              <div className="border-l-2 border-gray-300 pl-8">
+                <h2 className="text-3xl font-bold text-black">{subject.title}</h2>
+                <p className="text-gray-600 text-sm mt-1">{subject.description}</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-400 uppercase tracking-wide">Live Poll</p>
-              <p className="text-2xl font-bold">
+              <p className="text-sm text-gray-500 uppercase tracking-wide font-semibold">Live Poll</p>
+              <p className="text-2xl font-bold text-black">
                 Question {(subject.currentPollIndex || 0) + 1} / {polls.length}
               </p>
             </div>
