@@ -34,6 +34,7 @@ export function EventsManagement() {
   const baseEventFormSchema = insertEventSchema.extend({
     title: z.string().min(1, "Event title is required").min(5, "Title must be at least 5 characters"),
     description: z.string().min(1, "Description is required").min(10, "Description must be at least 10 characters"),
+    location: z.string().optional(),
     eventDate: z.string().min(1, "Event date is required"),
     youtubeUrl: z.string().optional().refine(
       (url) => !url || url.includes('youtube.com') || url.includes('youtu.be'),
@@ -60,6 +61,7 @@ export function EventsManagement() {
     defaultValues: {
       title: "",
       description: "",
+      location: "",
       eventDate: "",
       youtubeUrl: "",
       brandingColor: "#ff6600",
@@ -73,6 +75,7 @@ export function EventsManagement() {
     defaultValues: {
       title: "",
       description: "",
+      location: "",
       eventDate: "",
       youtubeUrl: "",
       brandingColor: "#ff6600",
@@ -102,6 +105,7 @@ export function EventsManagement() {
       editForm.reset({
         title: editingEvent.title,
         description: editingEvent.description || "",
+        location: editingEvent.location || "",
         eventDate: formattedDate,
         youtubeUrl: editingEvent.youtubeUrl || "",
         brandingColor: editingEvent.brandingColor || "#211100",
@@ -115,6 +119,7 @@ export function EventsManagement() {
     mutationFn: async (data: {
       title: string;
       description: string;
+      location?: string;
       eventDate: string;
       youtubeUrl?: string;
       brandingColor: string;
@@ -155,6 +160,7 @@ export function EventsManagement() {
       id: string;
       title: string;
       description: string;
+      location?: string;
       eventDate: string;
       youtubeUrl?: string;
       brandingColor: string;
@@ -299,6 +305,24 @@ export function EventsManagement() {
                           placeholder="Describe your event..."
                           rows={4}
                           data-testid="input-event-description"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={createForm.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location (Optional)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          placeholder="123 Main Street, City Name"
+                          data-testid="input-event-location"
                         />
                       </FormControl>
                       <FormMessage />
@@ -463,6 +487,19 @@ export function EventsManagement() {
                       <FormLabel>Description</FormLabel>
                       <FormControl>
                         <Textarea placeholder="Enter event description" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="123 Main Street, City Name" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
