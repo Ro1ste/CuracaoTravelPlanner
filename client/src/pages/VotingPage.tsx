@@ -98,8 +98,11 @@ export default function VotingPage() {
   return (
     <div className="min-h-screen bg-white text-black p-4 md:p-8">
       <div className="max-w-3xl mx-auto space-y-6">
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold">{subject.title}</h1>
+        <div className="text-center space-y-4 border-b-4 border-black pb-6">
+          <div className="flex justify-center">
+            <div className="text-2xl font-black uppercase tracking-wider">CISW</div>
+          </div>
+          <h1 className="text-4xl font-bold uppercase">{subject.title}</h1>
           {subject.description && (
             <p className="text-lg text-gray-600">{subject.description}</p>
           )}

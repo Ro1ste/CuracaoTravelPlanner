@@ -63,7 +63,8 @@ export default function PollDisplay() {
           data.voteCounts
         );
       } else if (data.type === "currentPollChange") {
-        queryClient.invalidateQueries({ queryKey: ["/api/subjects", subject.id] });
+        // Invalidate the correct query key that PollDisplay uses
+        queryClient.invalidateQueries({ queryKey: ["/api/subjects/code", shortCode] });
         queryClient.invalidateQueries({ queryKey: ["/api/subjects", subject.id, "polls"] });
       }
     };
@@ -152,7 +153,10 @@ export default function PollDisplay() {
   return (
     <div className="min-h-screen bg-white text-black p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        <div className="text-center space-y-2 border-b-4 border-black pb-6">
+        <div className="text-center space-y-4 border-b-4 border-black pb-6">
+          <div className="flex justify-center">
+            <div className="text-4xl font-black uppercase tracking-wider">CISW</div>
+          </div>
           <h1 className="text-5xl font-bold uppercase">{subject.title}</h1>
           <p className="text-xl text-gray-600">
             Live Poll Results - Question {(subject.currentPollIndex || 0) + 1} of {polls.length}
