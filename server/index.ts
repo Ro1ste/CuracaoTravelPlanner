@@ -11,7 +11,7 @@ const app = express();
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://your-production-domain.com'] // Replace with your production domain
-    : ['*'],
+    : true, // Allow any origin in development, but properly handle credentials
   credentials: true, // Allow cookies to be sent
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
