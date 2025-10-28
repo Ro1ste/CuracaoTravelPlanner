@@ -1582,6 +1582,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Check if user has voted on a poll (Public)
+  app.get('/api/polls/:pollId/has-voted/:sessionId', async (req, res) => {
+    try {
+      const hasVoted = await storage.hasVoted(req.params.pollId, req.params.sessionId);
+      res.json({ hasVoted });
+    } catch (error) {
+      console.error("Error checking vote status:", error);
+      res.status(500).json({ message: "Failed to check vote status" });
+    }
+  });
+
   // Generate AI insight about poll question
   app.get('/api/polls/:pollId/question-insight', async (req, res) => {
     try {

@@ -30,6 +30,12 @@ import { z } from "zod";
 
 const subjectFormSchema = insertSubjectSchema.extend({
   title: z.string().min(1, "Title is required"),
+  shortCode: z.string()
+    .optional()
+    .transform((val) => val?.trim()) // Trim whitespace
+    .refine((val) => !val || val.length >= 3, "Short code must be at least 3 characters")
+    .refine((val) => !val || /^[a-zA-Z0-9_-]+$/.test(val), "Short code can only contain letters, numbers, hyphens, and underscores")
+    .refine((val) => !val || !val.includes(" "), "Short code cannot contain spaces"),
 });
 
 const pollFormSchema = z.object({
@@ -72,7 +78,8 @@ export default function PollsManagement() {
 
   const createSubjectMutation = useMutation({
     mutationFn: async (data: z.infer<typeof subjectFormSchema>) => {
-      let shortCode = data.shortCode || nanoid(6).toUpperCase();
+      // Ensure shortCode is trimmed and clean
+      let shortCode = data.shortCode?.trim() || nanoid(6).toUpperCase();
       let attempts = 0;
       const maxAttempts = 5;
       
@@ -133,9 +140,25 @@ export default function PollsManagement() {
     },
   });
 
-  const { data: polls = [] } = useQuery<Poll[]>({
-    queryKey: ["/api/subjects", selectedSubject?.id, "polls"],
-    enabled: !!selectedSubject,
+  // Fetch polls for all subjects
+  const { data: allPolls = [] } = useQuery<Poll[]>({
+    queryKey: ["/api/polls/all"],
+    queryFn: async () => {
+      // Fetch polls for each subject
+      const pollsPromises = subjects.map(async subject => {
+        const response = await fetch(`/api/subjects/${subject.id}/polls`, {
+          credentials: "include",
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to fetch polls for subject ${subject.id}`);
+        }
+        return response.json();
+      });
+      const pollsArrays = await Promise.all(pollsPromises);
+      return pollsArrays.flat();
+    },
+    enabled: subjects.length > 0,
+    staleTime: 0, // Always refetch polls data
   });
 
   const createPollMutation = useMutation({
@@ -143,7 +166,9 @@ export default function PollsManagement() {
       return await apiRequest("POST", "/api/polls", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/subjects", selectedSubject?.id, "polls"] });
+      // Invalidate all subject-related queries to ensure data consistency
+      queryClient.invalidateQueries({ queryKey: ["/api/subjects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/polls/all"] });
       setPollDialogOpen(false);
       pollForm.reset();
       toast({
@@ -165,7 +190,7 @@ export default function PollsManagement() {
       return await apiRequest("DELETE", `/api/polls/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/subjects", selectedSubject?.id, "polls"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/polls/all"] });
       toast({
         title: "Success",
         description: "Poll deleted successfully",
@@ -178,7 +203,7 @@ export default function PollsManagement() {
       const subject = subjects.find(s => s.id === subjectId);
       if (!subject) return;
       
-      const subjectPolls = polls.filter(p => p.subjectId === subjectId);
+      const subjectPolls = allPolls.filter(p => p.subjectId === subjectId);
       const currentIndex = subject.currentPollIndex || 0;
       let newIndex = currentIndex;
       
@@ -191,7 +216,9 @@ export default function PollsManagement() {
       return await apiRequest("PATCH", `/api/subjects/${subjectId}`, { currentPollIndex: newIndex });
     },
     onSuccess: () => {
+      // Invalidate all subject-related queries to ensure data consistency
       queryClient.invalidateQueries({ queryKey: ["/api/subjects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/polls/all"] });
       toast({
         title: "Success",
         description: "Poll navigation successful",
@@ -212,7 +239,7 @@ export default function PollsManagement() {
 
   const onCreatePoll = (data: z.infer<typeof pollFormSchema>) => {
     if (!selectedSubject) return;
-    const orderIndex = polls.length;
+    const orderIndex = allPolls.filter(p => p.subjectId === selectedSubject.id).length;
     
     // Convert separate option fields to options array
     const options = [
@@ -236,6 +263,7 @@ export default function PollsManagement() {
   const displayUrl = (shortCode: string) =>
     `${window.location.origin}/poll-display/${shortCode}`;
 
+
   if (isLoading) {
     return <div className="p-6">Loading...</div>;
   }
@@ -257,74 +285,77 @@ export default function PollsManagement() {
               Create Subject
             </Button>
           </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create Polling Subject</DialogTitle>
-            </DialogHeader>
-            <Form {...subjectForm}>
-              <form onSubmit={subjectForm.handleSubmit(onCreateSubject)} className="space-y-4">
-                <FormField
-                  control={subjectForm.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Title</FormLabel>
-                      <FormControl>
-                        <Input {...field} data-testid="input-subject-title" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={subjectForm.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description (Optional)</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} value={field.value || ""} data-testid="input-subject-description" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={subjectForm.control}
-                  name="shortCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Short Code (Optional - auto-generated if blank)</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          value={field.value || ""}
-                          placeholder="e.g., SPORT2025"
-                          data-testid="input-subject-code"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setCreateDialogOpen(false)}
-                    data-testid="button-cancel-subject"
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={createSubjectMutation.isPending} data-testid="button-submit-subject">
-                    {createSubjectMutation.isPending ? "Creating..." : "Create"}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
         </Dialog>
       </div>
+
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Polling Subject</DialogTitle>
+          </DialogHeader>
+          <Form {...subjectForm}>
+            <form onSubmit={subjectForm.handleSubmit(onCreateSubject)} className="space-y-4">
+              <FormField
+                control={subjectForm.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
+                    <FormControl>
+                      <Input {...field} data-testid="input-subject-title" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={subjectForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} value={field.value || ""} data-testid="input-subject-description" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={subjectForm.control}
+                name="shortCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Short Code (Optional - auto-generated if blank)</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        value={field.value || ""}
+                        placeholder="e.g., SPORT2025"
+                        data-testid="input-subject-code"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCreateDialogOpen(false)}
+                  data-testid="button-cancel-subject"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createSubjectMutation.isPending} data-testid="button-submit-subject">
+                  {createSubjectMutation.isPending ? "Creating..." : "Create"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {subjects.map((subject) => (
@@ -343,7 +374,7 @@ export default function PollsManagement() {
                       {subject.shortCode}
                     </code>
                     <span className="text-sm text-muted-foreground">
-                      {polls.filter((p) => p.subjectId === subject.id).length} polls
+                      {allPolls.filter((p) => p.subjectId === subject.id).length} polls
                     </span>
                   </div>
                 </div>
@@ -358,10 +389,10 @@ export default function PollsManagement() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {polls.filter((p) => p.subjectId === subject.id).length > 0 && (
+              {allPolls.filter((p) => p.subjectId === subject.id).length > 0 && (
                 <div className="flex items-center gap-2 p-3 bg-muted rounded">
                   <span className="text-sm font-medium flex-1">
-                    Current Poll: {(subject.currentPollIndex || 0) + 1} of {polls.filter((p) => p.subjectId === subject.id).length}
+                    Current Poll: {(subject.currentPollIndex || 0) + 1} of {allPolls.filter((p) => p.subjectId === subject.id).length}
                   </span>
                   <Button
                     size="sm"
@@ -377,7 +408,7 @@ export default function PollsManagement() {
                     size="sm"
                     variant="outline"
                     onClick={() => advancePollMutation.mutate({ subjectId: subject.id, direction: 'next' })}
-                    disabled={(subject.currentPollIndex || 0) >= polls.filter((p) => p.subjectId === subject.id).length - 1 || advancePollMutation.isPending}
+                    disabled={(subject.currentPollIndex || 0) >= allPolls.filter((p) => p.subjectId === subject.id).length - 1 || advancePollMutation.isPending}
                     data-testid={`button-next-poll-${subject.id}`}
                   >
                     Next

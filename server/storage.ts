@@ -30,6 +30,7 @@ import {
   votes
 } from "@shared/schema";
 import { eq, desc, sql } from "drizzle-orm";
+import { validateShortCode } from "@shared/validation";
 
 // Interface for storage operations
 export interface IStorage {
@@ -426,9 +427,15 @@ export class DatabaseStorage implements IStorage {
     if (normalized.emailSubject === undefined) normalized.emailSubject = null;
     if (normalized.emailBodyText === undefined) normalized.emailBodyText = null;
 
-    // Generate unique short code with retry logic
-    let shortCode = normalized.shortCode;
+    // Clean and validate shortCode
+    const validation = validateShortCode(normalized.shortCode, true);
+    if (!validation.isValid) {
+      throw new Error(validation.error);
+    }
+    
+    let shortCode = validation.cleanedValue;
     if (!shortCode) {
+      // Generate unique short code with retry logic
       const { nanoid } = await import('nanoid');
       let attempts = 0;
       while (attempts < 10) {
@@ -571,7 +578,15 @@ export class DatabaseStorage implements IStorage {
   async createSubject(subjectData: InsertSubject & { shortCode?: string }): Promise<Subject> {
     const db = await this.getDb();
     const { nanoid } = await import('nanoid');
-    const shortCode = subjectData.shortCode || nanoid(8);
+    
+    // Clean and validate shortCode
+    const validation = validateShortCode(subjectData.shortCode, true);
+    if (!validation.isValid) {
+      throw new Error(validation.error);
+    }
+    
+    const shortCode = validation.cleanedValue || nanoid(8);
+    
     const [subject] = await db.insert(subjects).values({
       ...subjectData,
       shortCode,
@@ -581,6 +596,16 @@ export class DatabaseStorage implements IStorage {
 
   async updateSubject(id: string, updates: Partial<InsertSubject & { currentPollIndex?: number; isActive?: boolean }>): Promise<Subject | undefined> {
     const db = await this.getDb();
+    
+    // Clean and validate shortCode if provided
+    if (updates.shortCode !== undefined) {
+      const validation = validateShortCode(updates.shortCode, true);
+      if (!validation.isValid) {
+        throw new Error(validation.error);
+      }
+      updates.shortCode = validation.cleanedValue;
+    }
+    
     const [subject] = await db
       .update(subjects)
       .set(updates)

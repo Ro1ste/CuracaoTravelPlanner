@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { type Subject, type Poll } from "@shared/schema";
-import { CheckCircle2, ChevronRight, Lightbulb } from "lucide-react";
+import { CheckCircle2, Lightbulb } from "lucide-react";
 import { nanoid } from "nanoid";
 import ciswLogo from "@assets/WhatsApp Image 2025-10-26 at 17.19.45_01be175f_1761513642893.jpg";
 
@@ -16,30 +16,14 @@ export default function VotingPage() {
   const [, params] = useRoute("/vote/:shortCode");
   const shortCode = params?.shortCode || "";
   const [sessionId, setSessionId] = useState<string>("");
-  const [votedPolls, setVotedPolls] = useState<Set<string>>(new Set());
   const [selectedOption, setSelectedOption] = useState<string>("");
   const [aiInsight, setAiInsight] = useState<string>("");
-  const [voterPollIndex, setVoterPollIndex] = useState<number>(0);
-  const [showNextPollButton, setShowNextPollButton] = useState<boolean>(false);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    let id = localStorage.getItem("poll_session_id");
-    if (!id) {
-      id = nanoid();
-      localStorage.setItem("poll_session_id", id);
-    }
+    // Generate a new session ID each time
+    const id = nanoid();
     setSessionId(id);
-
-    const voted = localStorage.getItem(`voted_${shortCode}`);
-    if (voted) {
-      setVotedPolls(new Set(JSON.parse(voted)));
-    }
-
-    const savedIndex = localStorage.getItem(`voter_poll_index_${shortCode}`);
-    if (savedIndex) {
-      setVoterPollIndex(parseInt(savedIndex, 10));
-    }
   }, [shortCode]);
 
   const { data: subject, isLoading: subjectLoading } = useQuery<Subject>({
@@ -50,14 +34,31 @@ export default function VotingPage() {
   const { data: polls = [], isLoading: pollsLoading } = useQuery<Poll[]>({
     queryKey: ["/api/subjects", subject?.id, "polls"],
     enabled: !!subject?.id,
+    staleTime: 0, // Always refetch polls data
   });
 
-  const currentPoll = polls.find((p) => p.orderIndex === voterPollIndex);
+  const currentPoll = polls.find((p) => p.orderIndex === (subject?.currentPollIndex || 0));
 
   const { data: voteCounts = {} } = useQuery<Record<string, number>>({
     queryKey: ["/api/polls", currentPoll?.id, "votes"],
     enabled: !!currentPoll?.id,
     refetchInterval: 3000,
+  });
+
+  const { data: hasVoted = false } = useQuery<boolean>({
+    queryKey: ["/api/polls", currentPoll?.id, "has-voted", sessionId],
+    enabled: !!currentPoll?.id && !!sessionId,
+    queryFn: async () => {
+      if (!currentPoll) return false;
+      const response = await fetch(`/api/polls/${currentPoll.id}/has-voted/${sessionId}`, {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to check vote status");
+      }
+      const data = await response.json();
+      return data.hasVoted;
+    },
   });
 
   useEffect(() => {
@@ -80,10 +81,9 @@ export default function VotingPage() {
           data.voteCounts
         );
       } else if (data.type === "currentPollChange") {
-        const adminPollIndex = data.currentPollIndex;
-        if (adminPollIndex > voterPollIndex) {
-          setShowNextPollButton(true);
-        }
+        // Admin has changed the current poll, refresh the data
+        queryClient.invalidateQueries({ queryKey: ["/api/subjects/code", shortCode] });
+        queryClient.invalidateQueries({ queryKey: ["/api/subjects", subject?.id, "polls"] });
       }
     };
 
@@ -105,32 +105,13 @@ export default function VotingPage() {
     },
     onSuccess: () => {
       if (currentPoll) {
-        const newVoted = new Set(votedPolls);
-        newVoted.add(currentPoll.id);
-        setVotedPolls(newVoted);
-        localStorage.setItem(`voted_${shortCode}`, JSON.stringify(Array.from(newVoted)));
+        // Invalidate vote status and vote counts
+        queryClient.invalidateQueries({ queryKey: ["/api/polls", currentPoll.id, "has-voted", sessionId] });
         queryClient.invalidateQueries({ queryKey: ["/api/polls", currentPoll.id, "votes"] });
         setSelectedOption("");
       }
     },
   });
-
-  const handleNextPoll = () => {
-    const newIndex = voterPollIndex + 1;
-    setVoterPollIndex(newIndex);
-    setShowNextPollButton(false);
-    setSelectedOption("");
-    localStorage.setItem(`voter_poll_index_${shortCode}`, newIndex.toString());
-  };
-
-  useEffect(() => {
-    if (subject) {
-      const adminPollIndex = subject.currentPollIndex || 0;
-      if (adminPollIndex > voterPollIndex) {
-        setShowNextPollButton(true);
-      }
-    }
-  }, [subject?.currentPollIndex, voterPollIndex]);
 
   useEffect(() => {
     if (currentPoll) {
@@ -156,7 +137,6 @@ export default function VotingPage() {
     }
   };
 
-  const hasVoted = currentPoll ? votedPolls.has(currentPoll.id) : false;
 
   const options: Array<{ id: string; text: string }> = currentPoll?.options
     ? (currentPoll.options as Array<{ id: string; text: string }>)
@@ -296,17 +276,6 @@ export default function VotingPage() {
                   Total votes: {totalVotes}
                 </p>
 
-                {/* Next Poll Button - Shows when admin advances */}
-                {showNextPollButton && voterPollIndex < polls.length - 1 && (
-                  <Button
-                    onClick={handleNextPoll}
-                    className="w-full h-12 text-lg font-bold bg-black text-white hover:bg-gray-800 mt-4"
-                    data-testid="button-next-poll"
-                  >
-                    Next Poll
-                    <ChevronRight className="w-5 h-5 ml-2" />
-                  </Button>
-                )}
               </div>
             )}
           </CardContent>

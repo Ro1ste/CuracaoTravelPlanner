@@ -29,6 +29,7 @@ export default function PollDisplay() {
   const { data: polls = [] } = useQuery<Poll[]>({
     queryKey: ["/api/subjects", subject?.id, "polls"],
     enabled: !!subject?.id,
+    staleTime: 0, // Always refetch polls data
   });
 
   const currentPoll = polls.find((p) => p.orderIndex === subject?.currentPollIndex);
@@ -86,7 +87,9 @@ export default function PollDisplay() {
       return await apiRequest("POST", `/api/subjects/${subject.id}/advance`, {});
     },
     onSuccess: () => {
+      // Invalidate all subject-related queries to ensure data consistency
       queryClient.invalidateQueries({ queryKey: ["/api/subjects/code", shortCode] });
+      queryClient.invalidateQueries({ queryKey: ["/api/subjects", subject?.id, "polls"] });
       setAiCommentary("");
     },
   });
