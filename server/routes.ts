@@ -218,13 +218,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Remove password from response
       const { password, ...userWithoutPassword } = user;
       
-      console.log('User fetched successfully:', userWithoutPassword.email);
-      
-      res.json({
+      // Convert snake_case database fields to camelCase for frontend (fixes production bug)
+      // Database columns are: can_manage_events, can_manage_polls, etc.
+      // Frontend expects: canManageEvents, canManagePolls, etc.
+      const userAny = user as any;
+      const userResponse = {
         ...userWithoutPassword,
+        // Map snake_case DB fields to camelCase for frontend
+        canManageEvents: userAny.can_manage_events ?? userAny.canManageEvents ?? false,
+        canManagePolls: userAny.can_manage_polls ?? userAny.canManagePolls ?? false,
+        canApproveAttendees: userAny.can_approve_attendees ?? userAny.canApproveAttendees ?? false,
+        canManageTasks: userAny.can_manage_tasks ?? userAny.canManageTasks ?? false,
+        canViewReports: userAny.can_view_reports ?? userAny.canViewReports ?? false,
         hasCompany: !!company,
         companyId: company?.id
+      };
+      
+      console.log('User fetched successfully:', userResponse.email, 'Permissions:', {
+        canManageEvents: userResponse.canManageEvents,
+        canManagePolls: userResponse.canManagePolls,
+        canManageTasks: userResponse.canManageTasks,
+        canApproveAttendees: userResponse.canApproveAttendees,
+        canViewReports: userResponse.canViewReports
       });
+      
+      res.json(userResponse);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
